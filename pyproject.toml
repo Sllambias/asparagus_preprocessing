@@ -1,0 +1,52 @@
+[project]
+name = "asparagus_preprocessing"
+version = "0.1.5"
+authors = [
+  { name="Sebastian Llambias", email="llambias@live.com" },
+]
+description = ""
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache License 2.0",
+    "Operating System :: OS Independent",
+]
+keywords = ['deep learning', 'medical image analysis','foundation models']
+
+dependencies = [
+    "torch==2.6.0",
+    "numpy>=2.2.5",
+    "nibabel>=5.3.2",
+    "scikit-image>=0.21.0",
+    "scikit-learn>=1.7.2",
+    "pandas>=2.2.2",
+    "python-dotenv>=1.0.0",
+    "openpyxl",
+    "xlrd>=2.0.1"
+]
+
+
+[dependency-groups]
+dcai = [
+    "pandas==2.2.2",
+]
+
+[project.scripts]
+asp_process = 'asparagus_preprocessing.scripts.process:main'
+asp_split = 'asparagus_preprocessing.scripts.split:main'
+asp_update_paths = 'asparagus_preprocessing.scripts.update_paths:main'
+
+[tool.setuptools.packages.find]
+include = ["asparagus_preprocessing*"]
+
+[project.urls]
+"Homepage" = "https://github.com/sllambias/asparagus_preprocessing"
+
+[build-system]
+requires = ["setuptools>=75.8", "wheel>=0.45"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 127
+
