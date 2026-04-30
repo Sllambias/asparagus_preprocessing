@@ -1,13 +1,17 @@
 import asparagus_preprocessing
 import os
 from asparagus_preprocessing.paths import get_data_path
-from asparagus_preprocessing.utils.dataclasses import PreprocessingConfig, DatasetConfig, SavingConfig
+from asparagus_preprocessing.utils.dataclasses import (
+    DatasetConfig,
+    PreprocessingConfig,
+    SavingConfig,
+)
 from asparagus_preprocessing.utils.detect import (
-    recursive_find_files,
-    recursive_find_and_group_files,
-    find_processed_dataset,
-    find_and_add_train_splits,
     find_and_add_test_splits,
+    find_and_add_train_splits,
+    find_processed_dataset,
+    recursive_find_and_group_files,
+    recursive_find_files,
 )
 from asparagus_preprocessing.utils.loading import load_json
 from asparagus_preprocessing.utils.saving import enhanced_save_json
@@ -21,7 +25,7 @@ def generate_dataset_json(
     dataset_config: DatasetConfig = None,
     saving_config: SavingConfig = None,
     preprocessing_config: PreprocessingConfig = None,
-):
+) -> None:
     json_dict = {}
     json_dict["name"] = dataset_name
     json_dict["metadata"] = metadata
@@ -32,19 +36,41 @@ def generate_dataset_json(
     enhanced_save_json(json_dict, os.path.join(output_file))
 
 
-def postprocess_standard_dataset(
-    dataset_config,
-    preprocessing_config,
-    saving_config,
-    target_dir,
-    source_files_standard,
-    source_files_DWI,
-    source_files_PET,
-    source_files_Perf,
-    source_files_excluded,
-    processes=12,
-):
+def simple_postprocess_standard_dataset(
+    dataset_config: DatasetConfig,
+    preprocessing_config: PreprocessingConfig,
+    saving_config: SavingConfig,
+    target_dir: str,
+    source_files_standard: list[str],
+    source_files_excluded: list[str],
+    processes: int = 12,
+) -> None:
+    postprocess_standard_dataset(
+        dataset_config=dataset_config,
+        preprocessing_config=preprocessing_config,
+        saving_config=saving_config,
+        target_dir=target_dir,
+        source_files_standard=source_files_standard,
+        source_files_DWI=[],
+        source_files_PET=[],
+        source_files_Perf=[],
+        source_files_excluded=source_files_excluded,
+        processes=processes,
+    )
 
+
+def postprocess_standard_dataset(
+    dataset_config: DatasetConfig,
+    preprocessing_config: PreprocessingConfig,
+    saving_config: SavingConfig,
+    target_dir: str,
+    source_files_standard: list[str],
+    source_files_DWI: list[str],
+    source_files_PET: list[str],
+    source_files_Perf: list[str],
+    source_files_excluded: list[str],
+    processes: int = 12,
+) -> None:
     source_all_files = (
         len(source_files_standard)
         + len(source_files_DWI)
@@ -99,7 +125,9 @@ def postprocess_standard_dataset(
         )
 
 
-def combine_datasets_with_splits(dataset_collection):
+def combine_datasets_with_splits(
+    dataset_collection: list[str],
+) -> tuple[dict[str, dict], list[str], list[dict[str, list]], list[dict]]:
     all_dataset_json = {}
     all_files = []
     all_train_splits = [
@@ -123,7 +151,9 @@ def combine_datasets_with_splits(dataset_collection):
     return all_dataset_json, all_files, all_train_splits, all_test_splits
 
 
-def combine_datasets_without_splits(dataset_collection):
+def combine_datasets_without_splits(
+    dataset_collection: list[str],
+) -> tuple[dict[str, dict], list[str]]:
     all_dataset_json = {}
     all_files = []
 

@@ -1,7 +1,9 @@
-import os
-from asparagus_preprocessing.configs.preprocessing_presets import get_iso_preprocessing_config, get_FOMO_saving_config
-from asparagus_preprocessing.paths import get_source_path
+from asparagus_preprocessing.configs.preprocessing_presets import (
+    get_FOMO_saving_config,
+    get_iso_preprocessing_config,
+)
 from asparagus_preprocessing.datasets_pretraining.PT005_ADHD_200 import process
+from asparagus_preprocessing.paths import get_source_path
 
 
 def main(

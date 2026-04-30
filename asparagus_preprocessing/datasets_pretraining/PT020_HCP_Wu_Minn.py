@@ -1,16 +1,25 @@
 import os
-from asparagus_preprocessing.utils.detect import recursive_find_and_group_files, get_bvals_and_bvecs_v1, recursive_find_files
 from asparagus_preprocessing.configs.preprocessing_presets import (
-    get_noresampling_preprocessing_config,
     get_FOMO300K_saving_config,
+    get_noresampling_preprocessing_config,
 )
-from asparagus_preprocessing.utils.metadata_generation import postprocess_standard_dataset
 from asparagus_preprocessing.paths import get_data_path, get_source_path
-from asparagus_preprocessing.utils.path import get_image_output_paths
+from asparagus_preprocessing.utils.bids import (
+    extract_demographics,
+    rename_files_with_mapping,
+)
+from asparagus_preprocessing.utils.dataclasses import DatasetConfig
+from asparagus_preprocessing.utils.detect import (
+    get_bvals_and_bvecs_v1,
+    recursive_find_and_group_files,
+    recursive_find_files,
+)
+from asparagus_preprocessing.utils.metadata_generation import (
+    postprocess_standard_dataset,
+)
 from asparagus_preprocessing.utils.mp import multiprocess_mri_dwi_pet_perf_cases
 from asparagus_preprocessing.utils.parser import asparagus_parser
-from asparagus_preprocessing.utils.dataclasses import DatasetConfig
-from asparagus_preprocessing.utils.bids import extract_demographics, rename_files_with_mapping
+from asparagus_preprocessing.utils.path import get_image_output_paths
 
 
 def main(
@@ -22,7 +31,9 @@ def main(
     save_as_tensor=False,
 ):
     saving_config = get_FOMO300K_saving_config(
-        save_as_tensor=save_as_tensor, save_dset_metadata=save_dset_metadata, bidsify=bidsify
+        save_as_tensor=save_as_tensor,
+        save_dset_metadata=save_dset_metadata,
+        bidsify=bidsify,
     )
     preprocessing_config = get_noresampling_preprocessing_config()
 
@@ -99,13 +110,12 @@ def process(
     )
 
     if saving_config.bidsify or saving_config.save_dset_metadata:
-    
         hardcoded_metadata = {
             r"T1w_MPR": {
                 "Modality": "MR",
                 "MagneticFieldStrength": "3.0",
                 "Manufacturer": "Siemens",
-                "ManufacturersModelName": "MAGNETOM ConnectomS", 
+                "ManufacturersModelName": "MAGNETOM ConnectomS",
                 "SoftwareVersions": "syngo MR D11",
                 "SequenceName": "MPRAGE",
                 "MRAcquisitionType": "3D",
@@ -113,13 +123,13 @@ def process(
                 "EchoTime": "2.14",
                 "RepetitionTime": "2400",
                 "InversionTime": "1000",
-                "FlipAngle": "8"
+                "FlipAngle": "8",
             },
             r"T2w_SPC": {
                 "Modality": "MR",
                 "MagneticFieldStrength": "3.0",
                 "Manufacturer": "Siemens",
-                "ManufacturersModelName": "MAGNETOM ConnectomS", 
+                "ManufacturersModelName": "MAGNETOM ConnectomS",
                 "SoftwareVersions": "syngo MR D11",
                 "SequenceName": "T2-SPACE",
                 "MRAcquisitionType": "3D",
@@ -131,7 +141,7 @@ def process(
                 "Modality": "MR",
                 "MagneticFieldStrength": "3.0",
                 "Manufacturer": "Siemens",
-                "ManufacturersModelName": "MAGNETOM ConnectomS", 
+                "ManufacturersModelName": "MAGNETOM ConnectomS",
                 "SoftwareVersions": "syngo MR D11",
                 "SequenceName": "Spin-echo EPI",
                 "MRAcquisitionType": "3D",
@@ -143,14 +153,14 @@ def process(
                 "Modality": "MR",
                 "MagneticFieldStrength": "7.0",
                 "Manufacturer": "Siemens",
-                "ManufacturersModelName": "MAGNETOM", 
+                "ManufacturersModelName": "MAGNETOM",
                 "SequenceName": "Spin-echo EPI",
                 "MRAcquisitionType": "3D",
                 "SliceThickness": "1.05",
                 "EchoTime": "71.2",
                 "RepetitionTime": "7000",
-                "FlipAngle": "90"
-            }
+                "FlipAngle": "90",
+            },
         }
         demographics_csv_path = os.path.join(source_dir, "unrestricted_stce_7_8_2025_13_48_1.csv")
         processed_files = recursive_find_files(target_dir, extensions=dataset_config.in_extensions + [".pt"])
@@ -166,7 +176,7 @@ def process(
         )
 
     if saving_config.bidsify:
-        subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep='\t', index=False)
+        subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep="\t", index=False)
 
         mapping_df = rename_files_with_mapping(
             target_dir=target_dir,
@@ -174,7 +184,7 @@ def process(
         )
 
     if saving_config.bidsify or saving_config.save_dset_metadata:
-        mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep='\t', index=False)
+        mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep="\t", index=False)
 
     postprocess_standard_dataset(
         dataset_config=dataset_config,
@@ -188,6 +198,7 @@ def process(
         source_files_excluded=files_excluded,
         processes=processes,
     )
+
 
 if __name__ == "__main__":
     args = asparagus_parser.parse_args()

@@ -16,7 +16,11 @@ Usage:
     ./rewrite_paths.py input.json /new/base/path
 """
 
-import argparse, json, re, sys, shutil
+import argparse
+import json
+import re
+import shutil
+import sys
 from pathlib import Path
 from tqdm import tqdm
 
@@ -121,7 +125,10 @@ def main():
     backup_file(args.input_json)
     out, rep, sk_np, sk_uc = rewrite_paths(paths, args.new_base, confirmed)
     save_paths(args.input_json, out)
-    print(f"Replaced: {rep} | Skipped (no PT*): {sk_np} | Skipped (unconfirmed prefix): {sk_uc}", file=sys.stderr)
+    print(
+        f"Replaced: {rep} | Skipped (no PT*): {sk_np} | Skipped (unconfirmed prefix): {sk_uc}",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

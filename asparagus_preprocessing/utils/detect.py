@@ -1,19 +1,70 @@
-import os
-import logging
 import asparagus_preprocessing
+import logging
+import os
 import re
 from asparagus_preprocessing.paths import get_data_path
-from asparagus_preprocessing.utils.splitting import split
 from asparagus_preprocessing.utils.loading import load_json
 from asparagus_preprocessing.utils.saving import enhanced_save_json
-from multiprocessing import Pool, Manager
+from asparagus_preprocessing.utils.splitting import split
 from itertools import repeat
+from multiprocessing import Manager, Pool
 from time import time
+from typing import Any
+
+
+def simple_recursive_find_and_group_files(
+    base_path: str,
+    extensions: list[str],
+    patterns_exclusion: list[str] = [],
+    processes: int = 2,
+) -> tuple[list[str], list[str]]:
+    """
+    Simple version of file finding and grouping that only separates excluded files.
+    Args:
+        base_path: Root directory to search
+        extensions: File extensions to filter by
+        patterns_exclusion: Patterns to exclude
+        processes: Number of worker processes
+    Returns:
+        Tuple of 2 lists: (regular, excluded) file paths
+    """
+    regular, _, _, _, excluded = recursive_find_and_group_files(
+        base_path=base_path,
+        extensions=extensions,
+        patterns_dwi=[],
+        patterns_pet=[],
+        patterns_perfusion=[],
+        patterns_exclusion=patterns_exclusion,
+        processes=processes,
+    )
+    return list(regular), list(excluded)
 
 
 def recursive_find_and_group_files(
-    base_path, extensions, patterns_dwi, patterns_pet, patterns_perfusion, patterns_exclusion=[], processes=2
-):
+    base_path: str,
+    extensions: list[str],
+    patterns_dwi: list[str],
+    patterns_pet: list[str],
+    patterns_perfusion: list[str],
+    patterns_exclusion: list[str] = [],
+    processes: int = 2,
+) -> tuple[list[str], list[str], list[str], list[str], list[str]]:
+    """
+    Find and group files by pattern matching across multiple processes.
+
+    Args:
+        base_path: Root directory to search
+        extensions: File extensions to filter by
+        patterns_dwi: Patterns to match DWI files
+        patterns_pet: Patterns to match PET files
+        patterns_perfusion: Patterns to match perfusion files
+        patterns_exclusion: Patterns to exclude
+        processes: Number of worker processes
+
+    Returns:
+        Tuple of 5 lists: (regular, dwi, pet, perfusion, excluded) file paths
+    """
+
     # 1. Find all files
     all_cases = recursive_find_files(base_path, extensions)
     logging.info(f"Found {len(all_cases)} files with extensions {extensions} in {base_path}")
@@ -41,7 +92,25 @@ def recursive_find_and_group_files(
     return L[0], L[1], L[2], L[3], L[4]  # regular, DWI, PET, perfusion, excluded
 
 
-def filter_files(file, L, patterns_dwi, patterns_pet, patterns_perfusion, patterns_exclusion):
+def filter_files(
+    file: str,
+    L: list[Any],
+    patterns_dwi: set[str],
+    patterns_pet: set[str],
+    patterns_perfusion: set[str],
+    patterns_exclusion: set[str],
+) -> None:
+    """
+    Filter a single file into appropriate category list based on patterns.
+
+    Args:
+        file: File path to filter
+        L: List of 5 multiprocessing Manager lists for categorization
+        patterns_dwi: Set of DWI patterns
+        patterns_pet: Set of PET patterns
+        patterns_perfusion: Set of perfusion patterns
+        patterns_exclusion: Set of exclusion patterns
+    """
     if any(exclusion_pattern in file for exclusion_pattern in patterns_exclusion):
         L[4].append(file)
     elif any(pat1 in file for pat1 in patterns_dwi):
@@ -54,7 +123,7 @@ def filter_files(file, L, patterns_dwi, patterns_pet, patterns_perfusion, patter
         L[0].append(file)
 
 
-def recursive_find_files(path, extensions):
+def recursive_find_files(path: str, extensions: list[str]) -> list[str]:
     all_cases = []
     # 1. Build list of all files in the directory recursively.
     for dirpath, _, filenames in os.walk(path):
@@ -191,26 +260,34 @@ def update_paths(dataset_dir):
     target_all_files = recursive_find_files(dataset_dir, extensions=extension)
 
     if len(extension) == 0 or len(target_all_files) == 0:
-        logging.warn(
-            f"No files found in target directory {dataset_dir} with extension {extension}. If this is a dataset collection you need to rerun its preprocessing script"
+        logging.warning(
+            f"No files found in target directory {dataset_dir} with extension {extension}. If this is a dataset collection you need to rerun its preprocessing script"  # noqa: E501
         )
         return
     if len(old_paths) == 0:
-        logging.warn(
-            f"No old paths provided, can not verify that the {len(target_all_files)} files found correspond to the old number of files"
+        logging.warning(
+            f"No old paths provided, can not verify that the {len(target_all_files)} files found correspond to the old number of files"  # noqa: E501
         )
     if len(target_all_files) != len(old_paths):
-        logging.warn(
+        logging.warning(
             f"Number of files in target directory {len(target_all_files)} does not match number of old paths {len(old_paths)}"
         )
 
-    enhanced_save_json(old_paths, os.path.join(dataset_dir, "paths_backup.json"), permissions=paths_permissions)
+    enhanced_save_json(
+        old_paths,
+        os.path.join(dataset_dir, "paths_backup.json"),
+        permissions=paths_permissions,
+    )
     enhanced_save_json(target_all_files, os.path.join(dataset_dir, "paths.json"))
 
     split_name = dataset_cfg["dataset_config"].get("split")
     if split_name is not None:
         split_fn = getattr(asparagus_preprocessing.utils.splitting, split_name)
-        split(files=target_all_files, fn=split_fn, save_path=os.path.join(dataset_dir, split_name + ".json"))
+        split(
+            files=target_all_files,
+            fn=split_fn,
+            save_path=os.path.join(dataset_dir, split_name + ".json"),
+        )
 
 
 def find_and_add_train_splits(dataset_dir, all_train_splits):

@@ -1,6 +1,6 @@
-import numpy as np
 import nibabel as nib
 import nibabel.orientations as nio
+import numpy as np
 from typing import Union
 
 
@@ -27,9 +27,9 @@ def apply_nifti_preprocessing_and_return_numpy(
     if isinstance(images[0], nib.Nifti1Image):
         if verify_nifti_header_is_valid(images[0]) is True:
             if strict:
-                assert verify_orientation_is_LR_PA_IS(
-                    images[0]
-                ), "unexpected NIFTI axes. Consider RAS-conversion during task conversion"
+                assert verify_orientation_is_LR_PA_IS(images[0]), (
+                    "unexpected NIFTI axes. Consider RAS-conversion during task conversion"
+                )
             metadata["reoriented"] = True
             metadata["original_orientation"] = get_nib_orientation(images[0])
             metadata["final_direction"] = target_orientation

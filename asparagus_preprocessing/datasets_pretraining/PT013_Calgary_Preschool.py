@@ -1,16 +1,25 @@
 import os
-from asparagus_preprocessing.utils.detect import recursive_find_and_group_files, get_bvals_and_bvecs_v2, recursive_find_files
 from asparagus_preprocessing.configs.preprocessing_presets import (
-    get_noresampling_preprocessing_config,
     get_FOMO300K_saving_config,
+    get_noresampling_preprocessing_config,
 )
-from asparagus_preprocessing.utils.metadata_generation import postprocess_standard_dataset
 from asparagus_preprocessing.paths import get_data_path, get_source_path
-from asparagus_preprocessing.utils.path import get_image_output_paths
+from asparagus_preprocessing.utils.bids import (
+    extract_demographics,
+    rename_files_with_mapping,
+)
+from asparagus_preprocessing.utils.dataclasses import DatasetConfig
+from asparagus_preprocessing.utils.detect import (
+    get_bvals_and_bvecs_v2,
+    recursive_find_and_group_files,
+    recursive_find_files,
+)
+from asparagus_preprocessing.utils.metadata_generation import (
+    postprocess_standard_dataset,
+)
 from asparagus_preprocessing.utils.mp import multiprocess_mri_dwi_pet_perf_cases
 from asparagus_preprocessing.utils.parser import asparagus_parser
-from asparagus_preprocessing.utils.dataclasses import DatasetConfig
-from asparagus_preprocessing.utils.bids import extract_demographics, rename_files_with_mapping
+from asparagus_preprocessing.utils.path import get_image_output_paths
 
 
 def main(
@@ -22,7 +31,9 @@ def main(
     save_as_tensor=False,
 ):
     saving_config = get_FOMO300K_saving_config(
-        save_as_tensor=save_as_tensor, save_dset_metadata=save_dset_metadata, bidsify=bidsify
+        save_as_tensor=save_as_tensor,
+        save_dset_metadata=save_dset_metadata,
+        bidsify=bidsify,
     )
     preprocessing_config = get_noresampling_preprocessing_config()
 
@@ -57,7 +68,14 @@ def process(
         patterns_bidsify=[
             r"(\d{5})[/\\]+(PS\d{2}_\d{3}|PS\d{2}_\d{4}|PS\d{2}_\d{7}|PS\d{4}-\d|CL_DEV_\d{3}(?:_Ax\d)?|CL_Dev_\d{3})"
         ],
-        df_columns=["participant_id", "session_id", "age", "sex", "handedness", "group"],
+        df_columns=[
+            "participant_id",
+            "session_id",
+            "age",
+            "sex",
+            "handedness",
+            "group",
+        ],
     )
 
     source_dir = os.path.join(path, subdir)
@@ -113,39 +131,38 @@ def process(
 
     if saving_config.bidsify or saving_config.save_dset_metadata:
         hardcoded_metadata = {
-            "T1_Dataset": { 
+            "T1_Dataset": {
                 "Modality": "MR",
                 "MagneticFieldStrength": "3.0",
-                "Manufacturer": "GE", 
+                "Manufacturer": "GE",
                 "ManufacturersModelName": "MR750w",
                 "SequenceName": "FSPGR_BRAVO",
                 "EchoTime": "3.76",
-                "SliceThickness": "0.9", 
+                "SliceThickness": "0.9",
                 "RepetitionTime": "8.23",
                 "InversionTime": "540",
-                "FlipAngle": "12"
+                "FlipAngle": "12",
             },
             "ASL_Dataset": {
                 "Modality": "MR",
                 "MagneticFieldStrength": "3.0",
                 "Manufacturer": "GE",
-                "ManufacturersModelName": "MR750w", 
+                "ManufacturersModelName": "MR750w",
                 "SequenceName": "pCASL_3D",
                 "EchoTime": "10.74",
                 "SliceThickness": "4.0",
-                "RepetitionTime": "4560"  # TR = 4.56 s
+                "RepetitionTime": "4560",  # TR = 4.56 s
             },
             "DTI_Dataset_b750": {
                 "Modality": "MR",
                 "MagneticFieldStrength": "3.0",
                 "Manufacturer": "GE",
                 "ManufacturersModelName": "MR750w",
-                "SequenceName": "SS_SE_EPI", 
+                "SequenceName": "SS_SE_EPI",
                 "EchoTime": "79",
                 "SliceThickness": "2.2",
-                "RepetitionTime": "6750"
-            }
-
+                "RepetitionTime": "6750",
+            },
         }
         demographics_csv_path = os.path.join(
             source_dir,
@@ -173,9 +190,9 @@ def process(
             hardcoded_metadata=hardcoded_metadata,
             modality_patterns=my_modality_overrides,
         )
-        
+
     if saving_config.bidsify:
-        subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep='\t', index=False)
+        subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep="\t", index=False)
 
         mapping_df = rename_files_with_mapping(
             target_dir=target_dir,
@@ -184,7 +201,7 @@ def process(
         )
 
     if saving_config.bidsify or saving_config.save_dset_metadata:
-        mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep='\t', index=False)    
+        mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep="\t", index=False)
 
     postprocess_standard_dataset(
         dataset_config=dataset_config,

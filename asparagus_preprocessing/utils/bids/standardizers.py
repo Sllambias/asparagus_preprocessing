@@ -1,25 +1,25 @@
 import pandas as pd
+from .config import DEFAULT_HANDEDNESS_MAPPINGS, DEFAULT_SEX_MAPPINGS
 from typing import Optional
-from .config import DEFAULT_SEX_MAPPINGS, DEFAULT_HANDEDNESS_MAPPINGS
 
 
 def _apply_mapping(value, custom_mapping: dict, default_mapping: dict) -> Optional[str]:
     """
     Helper to apply custom or default mapping to a value.
-    
+
     Args:
         value: Value to standardize
         custom_mapping: Optional custom mapping dict
         default_mapping: Default mapping dict
-        
+
     Returns:
         Standardized value or None if no match found
     """
     if pd.isna(value):
         return value
-    
+
     value_str = str(value).strip()
-    
+
     # Try custom mapping first
     if custom_mapping:
         # Handle numeric mappings
@@ -29,11 +29,11 @@ def _apply_mapping(value, custom_mapping: dict, default_mapping: dict) -> Option
                 return custom_mapping[numeric_key]
         except (ValueError, TypeError):
             pass
-        
+
         # Handle string mappings
         if value_str in custom_mapping:
             return custom_mapping[value_str]
-    
+
     # Use default mapping
     return default_mapping.get(value_str.lower(), None)
 

@@ -1,5 +1,5 @@
-from copy import deepcopy
 import numpy as np
+from copy import deepcopy
 
 
 def get_bbox_for_foreground(array, background_label=0):
