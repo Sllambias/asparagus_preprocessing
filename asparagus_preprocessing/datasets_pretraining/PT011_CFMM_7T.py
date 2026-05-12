@@ -1,16 +1,25 @@
 import os
-from asparagus_preprocessing.utils.detect import recursive_find_and_group_files, get_bvals_and_bvecs_v1, recursive_find_files
 from asparagus_preprocessing.configs.preprocessing_presets import (
-    get_noresampling_preprocessing_config,
     get_FOMO300K_saving_config,
+    get_noresampling_preprocessing_config,
 )
-from asparagus_preprocessing.utils.metadata_generation import postprocess_standard_dataset
 from asparagus_preprocessing.paths import get_data_path, get_source_path
-from asparagus_preprocessing.utils.path import get_image_output_paths
+from asparagus_preprocessing.utils.bids import (
+    extract_demographics,
+    rename_files_with_mapping,
+)
+from asparagus_preprocessing.utils.dataclasses import DatasetConfig
+from asparagus_preprocessing.utils.detect import (
+    get_bvals_and_bvecs_v1,
+    recursive_find_and_group_files,
+    recursive_find_files,
+)
+from asparagus_preprocessing.utils.metadata_generation import (
+    postprocess_standard_dataset,
+)
 from asparagus_preprocessing.utils.mp import multiprocess_mri_dwi_pet_perf_cases
 from asparagus_preprocessing.utils.parser import asparagus_parser
-from asparagus_preprocessing.utils.dataclasses import DatasetConfig
-from asparagus_preprocessing.utils.bids import extract_demographics, rename_files_with_mapping
+from asparagus_preprocessing.utils.path import get_image_output_paths, prepare_target_dir
 
 
 def main(
@@ -22,7 +31,9 @@ def main(
     save_as_tensor=False,
 ):
     saving_config = get_FOMO300K_saving_config(
-        save_as_tensor=save_as_tensor, save_dset_metadata=save_dset_metadata, bidsify=bidsify
+        save_as_tensor=save_as_tensor,
+        save_dset_metadata=save_dset_metadata,
+        bidsify=bidsify,
     )
     preprocessing_config = get_noresampling_preprocessing_config()
 
@@ -60,7 +71,7 @@ def process(
 
     source_dir = os.path.join(path, subdir)
     target_dir = os.path.join(get_data_path(), dataset_config.task_name)
-    os.makedirs(target_dir, exist_ok=True)
+    prepare_target_dir(target_dir, saving_config.save_as_tensor)
 
     files_standard, files_DWI, files_PET, files_Perf, files_excluded = recursive_find_and_group_files(
         source_dir,
@@ -109,7 +120,7 @@ def process(
         )
 
     if saving_config.bidsify:
-        subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep='\t', index=False)
+        subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep="\t", index=False)
 
         mapping_df = rename_files_with_mapping(
             target_dir=target_dir,
@@ -117,7 +128,7 @@ def process(
         )
 
     if saving_config.bidsify or saving_config.save_dset_metadata:
-        mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep='\t', index=False)   
+        mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep="\t", index=False)
 
     postprocess_standard_dataset(
         dataset_config=dataset_config,

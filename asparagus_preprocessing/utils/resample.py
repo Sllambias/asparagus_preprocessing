@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import pandas as pd
 from asparagus_preprocessing.utils.normalize import normalizer
+from numpy.typing import NDArray
 from skimage.transform import resize
 
 
@@ -45,6 +46,7 @@ def resample_and_normalize_case(
                     case[i] = resize(case[i], output_shape=target_size, order=3)
             except OverflowError:
                 logging.error("Unexpected values in either shape or image for resize")
+
     if label is not None:
         try:
             if resample_method == "nnunet":
@@ -55,29 +57,58 @@ def resample_and_normalize_case(
         except OverflowError:
             logging.error("Unexpected values in either shape or label for resize")
         return case, label
+
     return case
 
 
-def resize_segmentation(segmentation, new_shape, order=3):
+def resize_segmentation(
+    segmentation: NDArray,
+    new_shape: tuple[int, ...],
+    order: int = 3,
+) -> NDArray:
     """
-    Resizes a segmentation map. Supports all orders (see skimage documentation). Will transform segmentation map to one
-    hot encoding which is resized and transformed back to a segmentation map.
-    This prevents interpolation artifacts ([0, 0, 2] -> [0, 1, 2])
-    :param segmentation:
-    :param new_shape:
-    :param order:
-    :return:
+    Resize a segmentation map while preserving label integrity.
+
+    Converts segmentation to one-hot encoding, resizes each channel, and converts
+    back to segmentation map. This prevents interpolation artifacts (e.g., [0, 0, 2]
+    becoming [0, 1, 2]).
+
+    Args:
+        segmentation: Input segmentation map (multi-dimensional array).
+        new_shape: Target shape for resizing.
+        order: Interpolation order. 0 for nearest neighbor, 1-5 for higher orders.
+            See skimage documentation for details. Defaults to 3 (cubic).
+
+    Returns:
+        Resized segmentation map with same dtype as input.
+
+    Raises:
+        AssertionError: If new_shape dimensionality doesn't match segmentation.
     """
     tpe = segmentation.dtype
     assert len(segmentation.shape) == len(new_shape), "new shape must have same dimensionality as segmentation"
     if order == 0:
-        return resize(segmentation.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False).astype(tpe)
+        return resize(
+            segmentation.astype(float),
+            new_shape,
+            order,
+            mode="edge",
+            clip=True,
+            anti_aliasing=False,
+        ).astype(tpe)
     else:
         reshaped = np.zeros(new_shape, dtype=segmentation.dtype)
 
         unique_labels = np.sort(pd.unique(segmentation.ravel()))
         for i, c in enumerate(unique_labels):
             mask = segmentation == c
-            reshaped_multihot = resize(mask.astype(float), new_shape, order, mode="edge", clip=True, anti_aliasing=False)
+            reshaped_multihot = resize(
+                mask.astype(float),
+                new_shape,
+                order,
+                mode="edge",
+                clip=True,
+                anti_aliasing=False,
+            )
             reshaped[reshaped_multihot >= 0.5] = c
         return reshaped

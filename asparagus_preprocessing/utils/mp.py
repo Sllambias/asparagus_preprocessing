@@ -1,12 +1,12 @@
 import logging
-from multiprocessing.pool import Pool
 from asparagus_preprocessing.utils.process_case import (
-    process_mri_case,
     process_dwi_case,
-    process_pet_case,
+    process_mri_case,
     process_perf_case,
+    process_pet_case,
 )
 from itertools import repeat
+from multiprocessing.pool import Pool
 
 
 def multiprocess_mri_dwi_pet_perf_cases(
@@ -29,12 +29,22 @@ def multiprocess_mri_dwi_pet_perf_cases(
 ):
     logging.info(f"Starting multiprocessing for MRI/standard. Number of files: {len(files_standard)}")
     if len(files_standard) > 0:
-        process_mri_case(files_standard[0], files_standard_out[0], preprocessing_config, saving_config)
+        process_mri_case(
+            files_standard[0],
+            files_standard_out[0],
+            preprocessing_config,
+            saving_config,
+        )
 
     with Pool(processes) as pool:
         pool.starmap(
             process_mri_case,
-            zip(files_standard, files_standard_out, repeat(preprocessing_config), repeat(saving_config)),
+            zip(
+                files_standard,
+                files_standard_out,
+                repeat(preprocessing_config),
+                repeat(saving_config),
+            ),
             chunksize=chunksize,
         )
 
@@ -53,7 +63,7 @@ def multiprocess_mri_dwi_pet_perf_cases(
 
     trace_count = sum(trace_flags_ordered)
     avg_count = len(trace_flags_ordered) - trace_count
-    logging.info(f"DWI processing: {avg_count} files will use averaging, " f"{trace_count} files will use trace computation")
+    logging.info(f"DWI processing: {avg_count} files will use averaging, {trace_count} files will use trace computation")
     if len(files_DWI) > 0:
         process_dwi_case(
             files_DWI[0],
@@ -99,7 +109,14 @@ def multiprocess_mri_dwi_pet_perf_cases(
 
     logging.info(f"Starting multiprocessing for Perfusion. Number of files: {len(files_Perf)}")
     if len(files_Perf) > 0:
-        process_perf_case(files_Perf[0], files_Perf_out[0], patterns_m0, preprocessing_config, saving_config, strict)
+        process_perf_case(
+            files_Perf[0],
+            files_Perf_out[0],
+            patterns_m0,
+            preprocessing_config,
+            saving_config,
+            strict,
+        )
     with Pool(processes) as pool:
         pool.starmap(
             process_perf_case,
@@ -116,21 +133,49 @@ def multiprocess_mri_dwi_pet_perf_cases(
 
 
 def process_dataset_without_table(
-    process_fn, files_in, files_out, dataset_config, preprocessing_config, saving_config, processes
+    process_fn,
+    files_in,
+    files_out,
+    dataset_config,
+    preprocessing_config,
+    saving_config,
+    processes,
 ):
     process_fn(files_in[0], files_out[0], dataset_config, preprocessing_config, saving_config)  # dry run to catch errors early
     with Pool(processes) as pool:
         pool.starmap(
             process_fn,
-            zip(files_in, files_out, repeat(dataset_config), repeat(preprocessing_config), repeat(saving_config)),
+            zip(
+                files_in,
+                files_out,
+                repeat(dataset_config),
+                repeat(preprocessing_config),
+                repeat(saving_config),
+            ),
         )
 
 
 def process_dataset_with_table(
-    process_fn, files_in, files_out, dataset_config, preprocessing_config, saving_config, table_in, table_out, processes
+    process_fn,
+    files_in,
+    files_out,
+    dataset_config,
+    preprocessing_config,
+    saving_config,
+    table_in,
+    table_out,
+    processes,
 ):
     for i in range(5):
-        process_fn(files_in[i], files_out[i], dataset_config, preprocessing_config, saving_config, table_in, table_out)
+        process_fn(
+            files_in[i],
+            files_out[i],
+            dataset_config,
+            preprocessing_config,
+            saving_config,
+            table_in,
+            table_out,
+        )
 
     with Pool(processes) as pool:
         pool.starmap(

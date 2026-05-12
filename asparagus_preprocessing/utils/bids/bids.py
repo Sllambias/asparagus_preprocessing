@@ -1,31 +1,37 @@
-import os
-import re
-import pandas as pd
-import shutil
 import logging
 import numpy as np
-from collections import defaultdict
-from typing import List, Optional, Dict, Tuple
-
+import os
+import pandas as pd
+import re
+import shutil
 from .config import (
-    SUPPORTED_FILE_EXTENSIONS,
+    DEFAULT_MRI_METADATA_FIELDS,
     EXTENSION_LENGTHS,
-    DEFAULT_MRI_METADATA_FIELDS
+    SUPPORTED_FILE_EXTENSIONS,
 )
-from .standardizers import standardize_sex, standardize_handedness, standardize_group, standardize_subject_id
 from .extractors import (
-    extract_subject_id_from_path,
-    extract_session_from_path,
-    find_columns,
     detect_modality_info,
-    get_json_path_for_image,
     extract_json_metadata,
+    extract_session_from_path,
+    extract_subject_id_from_path,
+    find_columns,
+    get_json_path_for_image,
     match_numeric_subject_ids,
-    sessions_match
+    sessions_match,
 )
+from .standardizers import (
+    standardize_group,
+    standardize_handedness,
+    standardize_sex,
+    standardize_subject_id,
+)
+from collections import defaultdict
+from typing import Dict, List, Optional, Tuple
 
 
-def load_demographics(demographics_csv_path: str) -> Tuple[Optional[pd.DataFrame], bool]:
+def load_demographics(
+    demographics_csv_path: str,
+) -> Tuple[Optional[pd.DataFrame], bool]:
     """Load demographics file and return DataFrame and success flag."""
     if not os.path.exists(demographics_csv_path):
         logging.warning(f"Demographics file not found: {demographics_csv_path}")
@@ -43,7 +49,7 @@ def load_demographics(demographics_csv_path: str) -> Tuple[Optional[pd.DataFrame
                 demo_df = pd.read_csv(demographics_csv_path, sep=";")
 
         if len(demo_df) == 0:
-            logging.warning(f"Demographics file is empty")
+            logging.warning("Demographics file is empty")
             return None, False
 
         logging.info(f"Loaded {len(demo_df)} subjects from demographics")
@@ -55,17 +61,14 @@ def load_demographics(demographics_csv_path: str) -> Tuple[Optional[pd.DataFrame
 
 
 def create_subject_session_mapping(
-        processed_ids: set, subject_sessions: Dict[str, set]
+    processed_ids: set, subject_sessions: Dict[str, set]
 ) -> Tuple[Dict[str, str], Dict[Tuple[str, str], str]]:
     """Create consistent subject and session mappings with zero-padding (min 2 digits)."""
     unique_subjects = sorted(processed_ids)
 
     # Always at least 2 digits, expands if needed
     num_subject_digits = max(2, len(str(len(unique_subjects))))
-    subject_mapping = {
-        old_id: f"sub-{i + 1:0{num_subject_digits}d}"
-        for i, old_id in enumerate(unique_subjects)
-    }
+    subject_mapping = {old_id: f"sub-{i + 1:0{num_subject_digits}d}" for i, old_id in enumerate(unique_subjects)}
 
     session_mapping = {}
     for original_id, sessions in subject_sessions.items():
@@ -80,7 +83,7 @@ def create_subject_session_mapping(
 
 
 def _extract_demographic_sessions(
-        subject_demo_rows: pd.DataFrame
+    subject_demo_rows: pd.DataFrame,
 ) -> Tuple[Dict[str, pd.Series], Optional[pd.Series]]:
     """
     Extract available demographic sessions for a subject.
@@ -108,9 +111,9 @@ def _extract_demographic_sessions(
 
 
 def _match_file_sessions_to_demographics(
-        file_sessions: List[str],
-        available_demo_sessions: Dict[str, pd.Series],
-        nan_demo_row: Optional[pd.Series]
+    file_sessions: List[str],
+    available_demo_sessions: Dict[str, pd.Series],
+    nan_demo_row: Optional[pd.Series],
 ) -> Dict[str, pd.Series]:
     """
     Match file sessions to demographic sessions using fuzzy matching.
@@ -147,12 +150,12 @@ def _match_file_sessions_to_demographics(
 
 
 def _create_row_without_demographics(
-        subject_mapping: Dict[str, str],
-        original_id: str,
-        session_number: int,
-        original_session: str,
-        default_group: Optional[str],
-        columns_to_keep: List[str]
+    subject_mapping: Dict[str, str],
+    original_id: str,
+    session_number: int,
+    original_session: str,
+    default_group: Optional[str],
+    columns_to_keep: List[str],
 ) -> Dict:
     """Create a minimal row for sessions without demographic data."""
     new_row = {
@@ -169,13 +172,13 @@ def _create_row_without_demographics(
 
 
 def create_expanded_dataframe(
-        matched_df: Optional[pd.DataFrame],
-        processed_ids: set,
-        subject_sessions: Dict[str, set],
-        subject_mapping: Dict[str, str],
-        session_mapping: Dict[Tuple[str, str], str],
-        columns_to_keep: List[str],
-        default_group: str = None,
+    matched_df: Optional[pd.DataFrame],
+    processed_ids: set,
+    subject_sessions: Dict[str, set],
+    subject_mapping: Dict[str, str],
+    session_mapping: Dict[Tuple[str, str], str],
+    columns_to_keep: List[str],
+    default_group: str = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Create expanded DataFrame with all subject-session combinations.
@@ -212,9 +215,7 @@ def create_expanded_dataframe(
 
                 # Match file sessions to demographic sessions
                 file_to_demo_mapping = _match_file_sessions_to_demographics(
-                    original_sessions,
-                    available_demo_sessions,
-                    nan_demo_row
+                    original_sessions, available_demo_sessions, nan_demo_row
                 )
 
                 # Create rows with sequential session numbering
@@ -230,8 +231,12 @@ def create_expanded_dataframe(
                     else:
                         # No demographic data for this session
                         new_row = _create_row_without_demographics(
-                            subject_mapping, original_id, session_counter,
-                            file_session, default_group, columns_to_keep
+                            subject_mapping,
+                            original_id,
+                            session_counter,
+                            file_session,
+                            default_group,
+                            columns_to_keep,
                         )
 
                     session_counter += 1
@@ -241,13 +246,17 @@ def create_expanded_dataframe(
                 # No demographics for this subject at all
                 for session_index, original_session in enumerate(original_sessions):
                     new_row = _create_row_without_demographics(
-                        subject_mapping, original_id, session_index + 1,
-                        original_session, default_group, columns_to_keep
+                        subject_mapping,
+                        original_id,
+                        session_index + 1,
+                        original_session,
+                        default_group,
+                        columns_to_keep,
                     )
                     expanded_rows.append(new_row)
 
     # Create DataFrames - keep the to_dict() check for Series objects
-    expanded_df = pd.DataFrame([row.to_dict() if hasattr(row, 'to_dict') else row for row in expanded_rows])
+    expanded_df = pd.DataFrame([row.to_dict() if hasattr(row, "to_dict") else row for row in expanded_rows])
 
     # Create display DataFrame with selected columns
     available_columns = [col for col in columns_to_keep if col in expanded_df.columns]
@@ -268,11 +277,11 @@ def create_expanded_dataframe(
 
 
 def generate_clean_BIDS_filename(
-        subject_id: str,
-        session_id: str,
-        original_filename: str,
-        existing_files: set = None,
-        modality_patterns: dict = None
+    subject_id: str,
+    session_id: str,
+    original_filename: str,
+    existing_files: set = None,
+    modality_patterns: dict = None,
 ) -> str:
     """Generate clean, standardized BIDS filename with subject and session."""
     if existing_files is None:
@@ -326,22 +335,22 @@ def remove_empty_dirs(path: str, source_dir: str) -> None:
 
 
 def create_mri_info_dataframe(
-        expanded_df: pd.DataFrame,
-        file_mapping: Dict[Tuple[str, str], List[str]],
-        common_base: str,
-        custom_json_mapping: dict = None,
-        hardcoded_metadata: dict = None,
-        source_dir: str = None,
-        target_dir: str = None,
+    expanded_df: pd.DataFrame,
+    file_mapping: Dict[Tuple[str, str], List[str]],
+    common_base: str,
+    custom_json_mapping: dict = None,
+    hardcoded_metadata: dict = None,
+    source_dir: str = None,
+    target_dir: str = None,
 ) -> pd.DataFrame:
     """Create MRI info dataframe with metadata from JSON files or hardcoded metadata."""
     mri_info_rows = []
 
     for _, row in expanded_df.iterrows():
-        subject_id = row['participant_id']
-        session_id = row['session_id']
-        original_subject_id = row['original_participant_id']
-        original_session_id = row['original_session_id']
+        subject_id = row["participant_id"]
+        session_id = row["session_id"]
+        original_subject_id = row["original_participant_id"]
+        original_session_id = row["original_session_id"]
 
         key = (original_subject_id, original_session_id)
         if key in file_mapping:
@@ -404,10 +413,10 @@ def create_mri_info_dataframe(
                         metadata = extract_json_metadata(json_path, hardcoded_metadata, original_filename, file_path)
 
                         mri_row = {
-                            'participant_id': subject_id,
-                            'session_id': session_id,
-                            'filename': rel_filename,
-                            **metadata
+                            "participant_id": subject_id,
+                            "session_id": session_id,
+                            "filename": rel_filename,
+                            **metadata,
                         }
                         mri_info_rows.append(mri_row)
                     else:
@@ -423,45 +432,53 @@ def create_mri_info_dataframe(
                             else:
                                 json_path = get_json_path_for_image(file_path, custom_json_mapping)
 
-                            metadata = extract_json_metadata(json_path, hardcoded_metadata, original_filename,
-                                                             file_path)
+                            metadata = extract_json_metadata(
+                                json_path,
+                                hardcoded_metadata,
+                                original_filename,
+                                file_path,
+                            )
 
                             mri_row = {
-                                'participant_id': subject_id,
-                                'session_id': session_id,
-                                'filename': rel_filename,
-                                **metadata
+                                "participant_id": subject_id,
+                                "session_id": session_id,
+                                "filename": rel_filename,
+                                **metadata,
                             }
                             mri_info_rows.append(mri_row)
 
     if mri_info_rows:
         mri_df = pd.DataFrame(mri_info_rows)
-        mri_df = mri_df.sort_values(['participant_id', 'session_id', 'filename']).reset_index(drop=True)
+        mri_df = mri_df.sort_values(["participant_id", "session_id", "filename"]).reset_index(drop=True)
         return mri_df
     else:
-        columns = ['participant_id', 'session_id', 'filename'] + DEFAULT_MRI_METADATA_FIELDS
+        columns = [
+            "participant_id",
+            "session_id",
+            "filename",
+        ] + DEFAULT_MRI_METADATA_FIELDS
         return pd.DataFrame(columns=columns)
 
 
 def extract_demographics(
-        processed_files: List[str],
-        demographics_csv_path: str,
-        columns_to_keep: List[str] = ["participant_id", "age", "sex"],
-        custom_patterns: List[str] = None,
-        modality_patterns: List[str] = None,
-        sex_mapping: dict = None,
-        handedness_mapping: dict = None,
-        group_mapping: dict = None,
-        default_group: str = None,
-        custom_json_mapping: dict = None,
-        hardcoded_metadata: dict = None,
-        source_dir: str = None,
-        target_dir: str = None,
+    processed_files: List[str],
+    demographics_csv_path: str,
+    columns_to_keep: List[str] = ["participant_id", "age", "sex"],
+    custom_patterns: List[str] = None,
+    modality_patterns: List[str] = None,
+    sex_mapping: dict = None,
+    handedness_mapping: dict = None,
+    group_mapping: dict = None,
+    default_group: str = None,
+    custom_json_mapping: dict = None,
+    hardcoded_metadata: dict = None,
+    source_dir: str = None,
+    target_dir: str = None,
 ) -> Optional[pd.DataFrame]:
     """Extract and standardize demographics for processed subjects."""
 
     if not processed_files:
-        logging.warning(f"No processed files")
+        logging.warning("No processed files")
         return None
 
     processed_ids = set()
@@ -538,14 +555,11 @@ def extract_demographics(
                 missing_df = pd.DataFrame(missing_rows)
                 matched_df = pd.concat([matched_df, missing_df], ignore_index=True)
 
-            rename_map = {found_cols[col]: col for col in found_cols if
-                          col in columns_to_keep and col != "participant_id"}
+            rename_map = {found_cols[col]: col for col in found_cols if col in columns_to_keep and col != "participant_id"}
             matched_df = matched_df.rename(columns=rename_map)
 
             if "sex" in matched_df.columns:
-                matched_df["sex"] = matched_df["sex"].apply(
-                    lambda x: standardize_sex(x, sex_mapping)
-                )
+                matched_df["sex"] = matched_df["sex"].apply(lambda x: standardize_sex(x, sex_mapping))
                 logging.info("Standardized sex column")
 
             if "handedness" in matched_df.columns:
@@ -555,9 +569,7 @@ def extract_demographics(
                 logging.info("Standardized handedness column")
 
             if "group" in matched_df.columns:
-                matched_df["group"] = matched_df["group"].apply(
-                    lambda x: standardize_group(x, group_mapping, default_group)
-                )
+                matched_df["group"] = matched_df["group"].apply(lambda x: standardize_group(x, group_mapping, default_group))
                 logging.info("Standardized group column")
 
             matched_df["original_participant_id"] = matched_df["participant_id_standardized"].copy()
@@ -575,7 +587,13 @@ def extract_demographics(
     subject_mapping, session_mapping = create_subject_session_mapping(processed_ids, subject_sessions)
 
     expanded_df, display_df = create_expanded_dataframe(
-        matched_df, processed_ids, subject_sessions, subject_mapping, session_mapping, columns_to_keep, default_group
+        matched_df,
+        processed_ids,
+        subject_sessions,
+        subject_mapping,
+        session_mapping,
+        columns_to_keep,
+        default_group,
     )
 
     if "participant_id" in display_df.columns:
@@ -590,28 +608,38 @@ def extract_demographics(
 
         # Assign files to expanded_df rows using pre-built mapping
         for i, row in expanded_df.iterrows():
-            key = (row['original_participant_id'], row['original_session_id'])
+            key = (row["original_participant_id"], row["original_session_id"])
             if key in file_mapping:
                 rel_paths = [os.path.relpath(file_path, common_base) for file_path in file_mapping[key]]
-                expanded_df.at[i, 'filenames'] = ','.join(rel_paths)
+                expanded_df.at[i, "filenames"] = ",".join(rel_paths)
 
-        mri_info_df = create_mri_info_dataframe(expanded_df, file_mapping, common_base,
-                                                custom_json_mapping, hardcoded_metadata,
-                                                source_dir, target_dir)
+        mri_info_df = create_mri_info_dataframe(
+            expanded_df,
+            file_mapping,
+            common_base,
+            custom_json_mapping,
+            hardcoded_metadata,
+            source_dir,
+            target_dir,
+        )
 
         return expanded_df, display_df, mri_info_df
     else:
         # Create empty MRI info dataframe when no processed files
-        columns = ['participant_id', 'session_id', 'filename'] + DEFAULT_MRI_METADATA_FIELDS
+        columns = [
+            "participant_id",
+            "session_id",
+            "filename",
+        ] + DEFAULT_MRI_METADATA_FIELDS
         mri_info_df = pd.DataFrame(columns=columns)
 
         return expanded_df, display_df, mri_info_df
 
 
 def rename_files_with_mapping(
-        target_dir: str,
-        expanded_df: pd.DataFrame,
-        modality_patterns: dict = None,
+    target_dir: str,
+    expanded_df: pd.DataFrame,
+    modality_patterns: dict = None,
 ) -> pd.DataFrame:
     """Reorganize files into BIDS structure using the provided expanded_df mapping."""
     import uuid
@@ -622,13 +650,13 @@ def rename_files_with_mapping(
     # Create file lookup from expanded_df
     file_lookup = {}
     for _, row in expanded_df.iterrows():
-        if pd.notna(row.get('filenames')):
-            filepaths = row['filenames'].split(',')
+        if pd.notna(row.get("filenames")):
+            filepaths = row["filenames"].split(",")
             for filepath in filepaths:
                 filepath = filepath.strip()
                 file_lookup[filepath] = {
-                    'new_participant_id': row['participant_id'],
-                    'new_session_id': row['session_id']
+                    "new_participant_id": row["participant_id"],
+                    "new_session_id": row["session_id"],
                 }
 
     # Collect all files using os.walk
@@ -685,7 +713,11 @@ def rename_files_with_mapping(
 
     # STEP 3: Organize files with BIDS-compliant run numbers
     files_organized = 0
-    for (subject_id, session_id, modality), file_list in subject_session_modality_files.items():
+    for (
+        subject_id,
+        session_id,
+        modality,
+    ), file_list in subject_session_modality_files.items():
         modality_dir = os.path.join(target_dir, subject_id, session_id, modality)
         os.makedirs(modality_dir, exist_ok=True)
 
@@ -731,15 +763,17 @@ def rename_files_with_mapping(
                     logging.error(f"Error moving {temp_path} to {new_path}: {e}")
                     continue
 
-                mapping_data.append({
-                    "old_path": old_rel_path,
-                    "new_path": new_rel_path,
-                    "old_filename": old_filename,
-                    "new_filename": clean_filename,
-                    "participant_id": subject_id,
-                    "session_id": session_id,
-                    "modality": modality,
-                })
+                mapping_data.append(
+                    {
+                        "old_path": old_rel_path,
+                        "new_path": new_rel_path,
+                        "old_filename": old_filename,
+                        "new_filename": clean_filename,
+                        "participant_id": subject_id,
+                        "session_id": session_id,
+                        "modality": modality,
+                    }
+                )
             else:
                 for run_num, (temp_path, old_path, old_filename) in enumerate(path_file_list, start=1):
                     clean_filename = f"{subject_id}_{session_id}_run-{run_num}_{suffix}{ext}"
@@ -754,15 +788,17 @@ def rename_files_with_mapping(
                         logging.error(f"Error moving {temp_path} to {new_path}: {e}")
                         continue
 
-                    mapping_data.append({
-                        "old_path": old_rel_path,
-                        "new_path": new_rel_path,
-                        "old_filename": old_filename,
-                        "new_filename": clean_filename,
-                        "participant_id": subject_id,
-                        "session_id": session_id,
-                        "modality": modality,
-                    })
+                    mapping_data.append(
+                        {
+                            "old_path": old_rel_path,
+                            "new_path": new_rel_path,
+                            "old_filename": old_filename,
+                            "new_filename": clean_filename,
+                            "participant_id": subject_id,
+                            "session_id": session_id,
+                            "modality": modality,
+                        }
+                    )
 
     # Remove empty directories
     all_paths_to_check = set()
@@ -780,7 +816,7 @@ def rename_files_with_mapping(
     mapping_df = pd.DataFrame(mapping_data)
     if not mapping_df.empty:
         mapping_path = os.path.join(target_dir, "mapping.tsv")
-        mapping_df.to_csv(mapping_path, sep='\t', index=False)
+        mapping_df.to_csv(mapping_path, sep="\t", index=False)
         logging.info(f"Saved mapping to {mapping_path}")
 
     return mapping_df

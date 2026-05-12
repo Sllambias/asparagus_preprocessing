@@ -1,5 +1,5 @@
-from asparagus_preprocessing.utils.parser import asparagus_parser
 import logging
+from asparagus_preprocessing.utils.parser import asparagus_parser
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -23,9 +23,9 @@ def main():
 
 
 def find_module(substring: str):
-    import os
-    import importlib
     import asparagus_preprocessing
+    import importlib
+    import os
 
     root = asparagus_preprocessing.__path__[0]
     for dir, subdirs, files in os.walk(root):

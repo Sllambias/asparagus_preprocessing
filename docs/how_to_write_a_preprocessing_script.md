@@ -113,7 +113,7 @@ Using the asparagus environment variables and the path and subdir defined in Ste
 ```
 source_dir = os.path.join(path, subdir)
 target_dir = os.path.join(get_data_path(), dataset_config.task_name)
-os.makedirs(target_dir, exist_ok=True)
+prepare_target_dir(target_dir, saving_config.save_as_tensor)
 ```
 For some datasets it may be necessary to look into a table to include/exclude files and for classification/regression tasks a table of labels must also be saved. These two cases are handled as below:
 ```

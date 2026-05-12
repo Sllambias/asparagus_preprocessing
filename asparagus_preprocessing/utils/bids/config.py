@@ -2,26 +2,35 @@
 """Default configuration for BIDS organization."""
 
 # File extensions
-SUPPORTED_FILE_EXTENSIONS = ('.nii.gz', '.nii', '.pt')
-EXTENSION_LENGTHS = {
-    '.nii.gz': 7,
-    '.nii': 4,
-    '.pt': 3
-}
+SUPPORTED_FILE_EXTENSIONS = (".nii.gz", ".nii", ".pt")
+EXTENSION_LENGTHS = {".nii.gz": 7, ".nii": 4, ".pt": 3}
 
 # Session matching delimiters
-SESSION_DELIMITERS = ['_', '-', 'T', ' ']
+SESSION_DELIMITERS = ["_", "-", "T", " "]
 
 # Metadata fields to extract
 DEFAULT_MRI_METADATA_FIELDS = [
-    'Modality', 'MagneticFieldStrength', 'Manufacturer', 'ManufacturersModelName',
-    'SoftwareVersions', 'MRAcquisitionType', 'SeriesDescription', 'ProtocolName',
-    'ScanningSequence', 'SequenceVariant', 'ScanOptions', 'SequenceName',
-    'EchoTime', 'SliceThickness', 'RepetitionTime', 'InversionTime', 'FlipAngle',
+    "Modality",
+    "MagneticFieldStrength",
+    "Manufacturer",
+    "ManufacturersModelName",
+    "SoftwareVersions",
+    "MRAcquisitionType",
+    "SeriesDescription",
+    "ProtocolName",
+    "ScanningSequence",
+    "SequenceVariant",
+    "ScanOptions",
+    "SequenceName",
+    "EchoTime",
+    "SliceThickness",
+    "RepetitionTime",
+    "InversionTime",
+    "FlipAngle",
 ]
 
 # Default columns to keep in demographics
-DEFAULT_COLUMNS_TO_KEEP = ['participant_id', 'age', 'sex']
+DEFAULT_COLUMNS_TO_KEEP = ["participant_id", "age", "sex"]
 
 # Default session extraction patterns
 DEFAULT_SESSION_PATTERNS = [
@@ -61,7 +70,13 @@ DEFAULT_COLUMN_MAP = {
     "disease_duration": ["disease_duration"],
     "site": ["site", "center", "scanner"],
     "session": ["session", "visit", "timepoint", "scanid", "study_datetime"],
-    "handedness": ["handedness", "handed", "hand", "Handedness 1=Right 2=Left", "laterality"],
+    "handedness": [
+        "handedness",
+        "handed",
+        "hand",
+        "Handedness 1=Right 2=Left",
+        "laterality",
+    ],
     "ethnicity": ["ethnicity", "ethnic"],
     "race": ["race"],
     "weight": ["weight"],
@@ -73,17 +88,37 @@ DEFAULT_COLUMN_MAP = {
 
 # Default mappings for standardization
 DEFAULT_SEX_MAPPINGS = {
-    'm': 'M', 'male': 'M', 'man': 'M', 'boy': 'M',
-    'f': 'F', 'female': 'F', 'woman': 'F', 'girl': 'F', 'w': 'F'
+    "m": "M",
+    "male": "M",
+    "man": "M",
+    "boy": "M",
+    "f": "F",
+    "female": "F",
+    "woman": "F",
+    "girl": "F",
+    "w": "F",
 }
 
 DEFAULT_HANDEDNESS_MAPPINGS = {
-    'r': 'R', 'right': 'R', 'right-handed': 'R', 'right handed': 'R', 
-    'righthanded': 'R', 'dextral': 'R',
-    'l': 'L', 'left': 'L', 'left-handed': 'L', 'left handed': 'L', 
-    'lefthanded': 'L', 'sinistral': 'L',
-    'a': 'A', 'ambidextrous': 'A', 'ambi': 'A', 'both': 'A', 
-    'ambiguous': 'A', 'r+l': 'A', 'l+r': 'A'
+    "r": "R",
+    "right": "R",
+    "right-handed": "R",
+    "right handed": "R",
+    "righthanded": "R",
+    "dextral": "R",
+    "l": "L",
+    "left": "L",
+    "left-handed": "L",
+    "left handed": "L",
+    "lefthanded": "L",
+    "sinistral": "L",
+    "a": "A",
+    "ambidextrous": "A",
+    "ambi": "A",
+    "both": "A",
+    "ambiguous": "A",
+    "r+l": "A",
+    "l+r": "A",
 }
 
 # Default BIDS modality patterns
@@ -101,7 +136,6 @@ DEFAULT_MODALITY_PATTERNS = {
     "b1000": {"suffix": "dwi", "folder": "dwi"},
     "b2000": {"suffix": "dwi", "folder": "dwi"},
     "b3000": {"suffix": "dwi", "folder": "dwi"},
-
     # Perfusion sequences
     "cbf": {"suffix": "cbf", "folder": "perf"},
     "cerebral_blood_flow": {"suffix": "cbf", "folder": "perf"},
@@ -111,10 +145,6 @@ DEFAULT_MODALITY_PATTERNS = {
     "mzero": {"suffix": "m0scan", "folder": "perf"},
     "m0scan": {"suffix": "m0scan", "folder": "perf"},
     "basil_att": {"suffix": "basil_att", "folder": "perf"},
-
-    # PET sequences
-    "pet": {"suffix": "pet", "folder": "pet"},
-
     # Anatomical sequences
     "t1ce": {"suffix": "T1c", "folder": "anat"},
     "t1c": {"suffix": "T1c", "folder": "anat"},
@@ -174,4 +204,6 @@ DEFAULT_MODALITY_PATTERNS = {
     "tof": {"suffix": "angio", "folder": "anat"},
     "t1": {"suffix": "T1w", "folder": "anat"},
     "mese": {"suffix": "MESE", "folder": "anat"},
+    # PET sequences
+    "pet": {"suffix": "pet", "folder": "pet"}
 }

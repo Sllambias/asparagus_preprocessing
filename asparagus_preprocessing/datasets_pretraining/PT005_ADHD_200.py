@@ -1,17 +1,26 @@
 import os
-from asparagus_preprocessing.utils.detect import recursive_find_and_group_files, get_bvals_and_bvecs_v1, recursive_find_files
+import pandas as pd
 from asparagus_preprocessing.configs.preprocessing_presets import (
-    get_noresampling_preprocessing_config,
     get_FOMO300K_saving_config,
+    get_noresampling_preprocessing_config,
 )
-from asparagus_preprocessing.utils.metadata_generation import postprocess_standard_dataset
 from asparagus_preprocessing.paths import get_data_path, get_source_path
-from asparagus_preprocessing.utils.path import get_image_output_paths
+from asparagus_preprocessing.utils.bids import (
+    extract_demographics,
+    rename_files_with_mapping,
+)
+from asparagus_preprocessing.utils.dataclasses import DatasetConfig
+from asparagus_preprocessing.utils.detect import (
+    get_bvals_and_bvecs_v1,
+    recursive_find_and_group_files,
+    recursive_find_files,
+)
+from asparagus_preprocessing.utils.metadata_generation import (
+    postprocess_standard_dataset,
+)
 from asparagus_preprocessing.utils.mp import multiprocess_mri_dwi_pet_perf_cases
 from asparagus_preprocessing.utils.parser import asparagus_parser
-from asparagus_preprocessing.utils.dataclasses import DatasetConfig
-from asparagus_preprocessing.utils.bids import extract_demographics, rename_files_with_mapping
-import pandas as pd
+from asparagus_preprocessing.utils.path import get_image_output_paths, prepare_target_dir
 
 
 def main(
@@ -23,7 +32,9 @@ def main(
     save_as_tensor=False,
 ):
     saving_config = get_FOMO300K_saving_config(
-        save_as_tensor=save_as_tensor, save_dset_metadata=save_dset_metadata, bidsify=bidsify
+        save_as_tensor=save_as_tensor,
+        save_dset_metadata=save_dset_metadata,
+        bidsify=bidsify,
     )
     preprocessing_config = get_noresampling_preprocessing_config()
 
@@ -70,12 +81,19 @@ def process(
             r"(Pittsburgh_\d{5})_(\d+)",
             r"(WashU_\d{5})_(\d+)",
         ],
-        df_columns=["participant_id", "session_id", "age", "sex", "handedness", "group"],
+        df_columns=[
+            "participant_id",
+            "session_id",
+            "age",
+            "sex",
+            "handedness",
+            "group",
+        ],
     )
 
     source_dir = os.path.join(path, subdir)
     target_dir = os.path.join(get_data_path(), dataset_config.task_name)
-    os.makedirs(target_dir, exist_ok=True)
+    prepare_target_dir(target_dir, saving_config.save_as_tensor)
 
     files_standard, files_DWI, files_PET, files_Perf, files_excluded = recursive_find_and_group_files(
         source_dir,
@@ -130,14 +148,14 @@ def process(
                 "SliceThickness": "1.0",  # 1.00 mm
                 "RepetitionTime": "2250",  # TR: 2250 ms
                 "InversionTime": "900",  # TI: 900 ms
-                "FlipAngle": "9"  # 9 deg
+                "FlipAngle": "9",  # 9 deg
             },
             "KKI_": {
                 "Modality": "MR",
                 "MagneticFieldStrength": "3.0",
                 "Manufacturer": "Philips",
-                "ManufacturersModelName": None,  
-                "SoftwareVersions": None, 
+                "ManufacturersModelName": None,
+                "SoftwareVersions": None,
                 "MRAcquisitionType": "3D",
                 "SeriesDescription": "T1_TFE_MPRAGE",  # Based on sequence type
                 "ProtocolName": "T1_TFE_MPRAGE",
@@ -147,9 +165,9 @@ def process(
                 "SequenceName": "TFE",  # Turbo Field Echo
                 "EchoTime": "3.7",  # Act. TR/TE: 8.0/3.7
                 "SliceThickness": "1.0",  # slice thickness: 1mm
-                "RepetitionTime": "3500",  
+                "RepetitionTime": "3500",
                 "InversionTime": "1000",  # To Exc: 1000ms
-                "FlipAngle": "8"  # Flip angle: 8 deg
+                "FlipAngle": "8",  # Flip angle: 8 deg
             },
             "NeuroIMAGE_": {
                 "Modality": "MR",
@@ -168,7 +186,7 @@ def process(
                 "SliceThickness": "1.0",  # 1.00 mm
                 "RepetitionTime": "2730",  # TR: 2730 ms
                 "InversionTime": "1000",  # TI: 1000 ms
-                "FlipAngle": "7"  # 7 deg
+                "FlipAngle": "7",  # 7 deg
             },
             "NYU_": {
                 "Modality": "MR",
@@ -187,7 +205,7 @@ def process(
                 "SliceThickness": "1.33",  # 1.33 mm
                 "RepetitionTime": "2530",  # TR: 2530 ms
                 "InversionTime": "1100",  # TI: 1100 ms
-                "FlipAngle": "7"  # 7 deg
+                "FlipAngle": "7",  # 7 deg
             },
             "OHSU_": {
                 "Modality": "MR",
@@ -206,7 +224,7 @@ def process(
                 "SliceThickness": "1.1",  # 1.10 mm
                 "RepetitionTime": "2300",  # TR: 2300 ms
                 "InversionTime": "900",  # TI: 900 ms
-                "FlipAngle": "10"  # 10 deg
+                "FlipAngle": "10",  # 10 deg
             },
             "Pittsburgh_": {
                 "Modality": "MR",
@@ -225,7 +243,7 @@ def process(
                 "SliceThickness": "1.0",  # 1.00 mm
                 "RepetitionTime": "2100",  # TR: 2100 ms
                 "InversionTime": "1050",  # TI: 1050 ms
-                "FlipAngle": "8"  # 8 deg
+                "FlipAngle": "8",  # 8 deg
             },
             "WashU_": {
                 "Modality": "MR",
@@ -244,8 +262,8 @@ def process(
                 "SliceThickness": "1.0",  # 1.00 mm
                 "RepetitionTime": "2400",  # TR: 2400 ms
                 "InversionTime": "1000",  # TI: 1000 ms
-                "FlipAngle": "8"  # 8 deg
-            }
+                "FlipAngle": "8",  # 8 deg
+            },
         }
         my_modality_overrides = {"rest": {"suffix": "T1w", "folder": "anat"}}  # For some reasons rest are actual T1w!
         demographics_csv_path = os.path.join(target_dir, "tmp.csv")
@@ -268,22 +286,21 @@ def process(
             hardcoded_metadata=hardcoded_metadata,
             source_dir=source_dir,
             target_dir=target_dir,
-            modality_patterns=my_modality_overrides
+            modality_patterns=my_modality_overrides,
         )
         os.remove(demographics_csv_path)
 
     if saving_config.bidsify:
-
-        subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep='\t', index=False)
+        subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep="\t", index=False)
 
         mapping_df = rename_files_with_mapping(
             target_dir=target_dir,
             expanded_df=expanded_df,
-            modality_patterns=my_modality_overrides
+            modality_patterns=my_modality_overrides,
         )
 
     if saving_config.bidsify or saving_config.save_dset_metadata:
-        mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep='\t', index=False)
+        mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep="\t", index=False)
 
     postprocess_standard_dataset(
         dataset_config=dataset_config,

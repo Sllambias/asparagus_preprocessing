@@ -1,18 +1,18 @@
-import nibabel as nib
-import numpy as np
-import pickle
-import torch
-import os
-import shutil
-import logging
+import csv
 import dataclasses
 import json
-import csv
+import nibabel as nib
+import numpy as np
+import os
+import pickle
+import shutil
+import torch
 from asparagus_preprocessing.paths import get_data_path, get_raw_labels_path
+from nibabel import Nifti1Header, Nifti1Image
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o: object) -> object:
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         return super().default(o)
@@ -38,7 +38,7 @@ def save_pickle(obj, file: str, mode: str = "wb") -> None:
 
 
 def save_nifti(data, path, affine, header) -> None:
-    tmp = nib.Nifti1Image(data, affine=affine, header=header)
+    tmp = Nifti1Image(data, affine=affine, header=header)
     nib.save(tmp, path)
 
 
@@ -68,7 +68,7 @@ def save_data_and_metadata(data, metadata, data_path, saving_config) -> None:
             data[0],
             data_path + ".nii.gz",  # This will not work with n_modalities > 1
             affine=metadata["nifti_metadata"]["affine"],
-            header=nib.Nifti1Header(metadata["nifti_metadata"]["header"]),
+            header=Nifti1Header(metadata["nifti_metadata"]["header"]),
         )
     if saving_config.save_file_metadata:
         save_pickle(metadata, data_path + ".pkl")
@@ -81,7 +81,7 @@ def save_raw_label(img_path, label_path) -> None:
     shutil.copy2(label_path, source_label_dest)
 
 
-def save_modified_label(img_path, modified_label: nib.Nifti1Image) -> None:
+def save_modified_label(img_path: str, modified_label: Nifti1Image) -> None:
     source_label_dest = img_path.replace(get_data_path(), get_raw_labels_path())
     source_label_dest += "_label.nii.gz"
     os.makedirs(os.path.dirname(source_label_dest), exist_ok=True)
@@ -99,6 +99,7 @@ def save_clsreg_data_and_metadata(data, label, metadata, data_path, saving_confi
         )
     else:
         raise NotImplementedError("Only saving as tensor is implemented for classification/regression tasks.")
+
     if saving_config.save_file_metadata:
         save_pickle(metadata, data_path + ".pkl")
     save_clsreg_label_to_table(label, data_path, table_path)

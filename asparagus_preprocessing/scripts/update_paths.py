@@ -1,7 +1,7 @@
-import os
 import argparse
-from asparagus_preprocessing.utils.detect import update_paths, find_processed_dataset
+import os
 from asparagus_preprocessing.paths import get_data_path
+from asparagus_preprocessing.utils.detect import find_processed_dataset, update_paths
 from pathlib import Path
 
 

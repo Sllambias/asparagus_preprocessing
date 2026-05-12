@@ -1,17 +1,26 @@
 import os
 import shutil
-from asparagus_preprocessing.utils.detect import recursive_find_and_group_files, get_bvals_and_bvecs_v1, recursive_find_files
 from asparagus_preprocessing.configs.preprocessing_presets import (
-    get_noresampling_preprocessing_config,
     get_FOMO300K_saving_config,
+    get_noresampling_preprocessing_config,
 )
-from asparagus_preprocessing.utils.metadata_generation import postprocess_standard_dataset
 from asparagus_preprocessing.paths import get_data_path, get_source_path
-from asparagus_preprocessing.utils.path import get_image_output_paths
+from asparagus_preprocessing.utils.bids import (
+    extract_demographics,
+    rename_files_with_mapping,
+)
+from asparagus_preprocessing.utils.dataclasses import DatasetConfig
+from asparagus_preprocessing.utils.detect import (
+    get_bvals_and_bvecs_v1,
+    recursive_find_and_group_files,
+    recursive_find_files,
+)
+from asparagus_preprocessing.utils.metadata_generation import (
+    postprocess_standard_dataset,
+)
 from asparagus_preprocessing.utils.mp import multiprocess_mri_dwi_pet_perf_cases
 from asparagus_preprocessing.utils.parser import asparagus_parser
-from asparagus_preprocessing.utils.dataclasses import DatasetConfig
-from asparagus_preprocessing.utils.bids import extract_demographics, rename_files_with_mapping
+from asparagus_preprocessing.utils.path import get_image_output_paths, prepare_target_dir
 
 DATASET_SPECIFIC_CONFIGS = {
     "ds000001": {"default_group": "Control"},
@@ -64,9 +73,21 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds000208": {"group_mapping": {"control": "Control", "patient": "Osteoarthritis"}},
     "ds000210": {"default_group": "Control"},
     "ds000212": {"group_mapping": {"NT": "NeuroTypical", "ASD": "Autism Spectrum Disorder"}},
-    "ds000214": {"group_mapping": {"Control": "Control", "Patient": "Borderline Personality Disorder"}},
+    "ds000214": {
+        "group_mapping": {
+            "Control": "Control",
+            "Patient": "Borderline Personality Disorder",
+        }
+    },
     "ds000216": {"default_group": "Control"},
-    "ds000217": {"group_mapping": {"1": "Control", "2": "Control", "3": "Control", "4": "Control"}},
+    "ds000217": {
+        "group_mapping": {
+            "1": "Control",
+            "2": "Control",
+            "3": "Control",
+            "4": "Control",
+        }
+    },
     "ds000218": {"default_group": "Control"},
     "ds000219": {"default_group": "Control"},
     "ds000221": {"default_group": "Control"},
@@ -140,7 +161,12 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds001345": {"default_group": "Control"},
     "ds001357": {"default_group": "Control"},
     "ds001365": {"default_group": "Control"},
-    "ds001371": {"group_mapping": {"control": "Control", "patient": "Clinical high risk for psychosis"}},
+    "ds001371": {
+        "group_mapping": {
+            "control": "Control",
+            "patient": "Clinical high risk for psychosis",
+        }
+    },
     "ds001378": {"group_mapping": {"CONTROL": "Control", "SCA2": "Spinocerebellar Ataxia Type 2"}},
     "ds001386": {"group_mapping": {"Control": "Control", "TBI": "Traumatic brain injury"}},
     "ds001399": {"group_mapping": {"YA": "Control", "OA": "Control"}},
@@ -148,8 +174,12 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds001415": {"default_group": "Control"},
     "ds001417": {"default_group": "Control"},
     "ds001430": {"default_group": "Control"},
-    "ds001454": {"default_group": "Control"},
-    "ds001486": {"default_group": "Control", "sex_mapping": {1: "M", 2: "F"}, "handedness_mapping": {2: "R", 1: "L"}},
+    "ds001454": {"group_mapping": {"sleep": "Control", "wake": "Control"}},
+    "ds001486": {
+        "default_group": "Control",
+        "sex_mapping": {1: "M", 2: "F"},
+        "handedness_mapping": {2: "R", 1: "L"},
+    },
     "ds001491": {"default_group": "Control"},
     "ds001497": {"default_group": "Control"},
     "ds001499": {"default_group": "Control"},
@@ -184,13 +214,24 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds001743": {"group_mapping": {"Control": "Control", "Patient": "Unilateral Glaucoma"}},
     "ds001745": {"default_group": "Control"},
     "ds001747": {"group_mapping": {"LB": "Control", "MC": "Control", "EB": "Control"}},
-    "ds001748": {"group_mapping": {"children": "Control", "adolescents": "Control", "adults": "Control"}},
+    "ds001748": {
+        "group_mapping": {
+            "children": "Control",
+            "adolescents": "Control",
+            "adults": "Control",
+        }
+    },
     "ds001751": {"default_group": "Control"},
     "ds001761": {"default_group": "Control"},
     "ds001762": {"default_group": "Control"},
     "ds001771": {"default_group": "Control"},
     "ds001775": {"default_group": "Control"},
-    "ds001784": {"group_mapping": {"MDD": "Major depressive disorder", "OCD": "Obsessive compulsive disorder"}},
+    "ds001784": {
+        "group_mapping": {
+            "MDD": "Major depressive disorder",
+            "OCD": "Obsessive compulsive disorder",
+        }
+    },
     "ds001796": {"default_group": "Control"},
     "ds001814": {"default_group": "Control"},
     "ds001832": {"default_group": "Control"},
@@ -201,8 +242,15 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds001848": {"default_group": "Control"},
     "ds001882": {"default_group": "Control"},
     "ds001883": {"default_group": "Control"},
-    "ds001894": {"default_group": "Control", "sex_mapping": {1: "M", 2: "F"}, "handedness_mapping": {2: "R", 1: "L"}},
-    "ds001907": {"group_mapping": {"HC": "Control", "PD": "Parkinson’s disease"}, "handedness_mapping": {1: "R", 2: "L"}},
+    "ds001894": {
+        "default_group": "Control",
+        "sex_mapping": {1: "M", 2: "F"},
+        "handedness_mapping": {2: "R", 1: "L"},
+    },
+    "ds001907": {
+        "group_mapping": {"HC": "Control", "PD": "Parkinson’s disease"},
+        "handedness_mapping": {1: "R", 2: "L"},
+    },
     "ds001921": {"default_group": "Control"},
     "ds001923": {"default_group": "Control"},
     "ds001926": {"default_group": "Control"},
@@ -237,7 +285,11 @@ DATASET_SPECIFIC_CONFIGS = {
         }
     },
     "ds002207": {"default_group": "Control"},
-    "ds002236": {"default_group": "Control", "sex_mapping": {1: "M", 2: "F"}, "handedness_mapping": {2: "R", 1: "L"}},
+    "ds002236": {
+        "default_group": "Control",
+        "sex_mapping": {1: "M", 2: "F"},
+        "handedness_mapping": {2: "R", 1: "L"},
+    },
     "ds002237": {"default_group": "Control"},
     "ds002241": {"default_group": "Control"},
     "ds002242": {"default_group": "Control"},
@@ -260,7 +312,10 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds002419": {"group_mapping": {"sugar": "Control", "lcs": "Control", "combo": "Control"}},
     "ds002422": {"default_group": "Control"},
     "ds002424": {
-        "group_mapping": {"0": "Control", "1": "Attention deficit hyperactivity disorder"},
+        "group_mapping": {
+            "0": "Control",
+            "1": "Attention deficit hyperactivity disorder",
+        },
         "sex_mapping": {1: "M", 2: "F"},
         "handedness_mapping": {2: "R", 1: "L"},
     },
@@ -316,7 +371,11 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds002872": {"default_group": "Control"},
     "ds002878": {"group_mapping": {"soccer": "Control"}},
     "ds002879": {"default_group": "Control", "sex_mapping": {1: "M", 2: "F"}},
-    "ds002886": {"default_group": "Control", "sex_mapping": {1: "M", 2: "F"}, "handedness_mapping": {2: "R", 1: "L"}},
+    "ds002886": {
+        "default_group": "Control",
+        "sex_mapping": {1: "M", 2: "F"},
+        "handedness_mapping": {2: "R", 1: "L"},
+    },
     "ds002896": {"group_mapping": {"0": "Control", "1": "Tinnitus"}},
     "ds002898": {"default_group": "Control"},
     "ds002905": {"default_group": "Control"},
@@ -392,7 +451,10 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds003484": {"default_group": "Control"},
     "ds003499": {"default_group": "Control"},
     "ds003500": {
-        "group_mapping": {"Control": "Control", "ADHD": "Attention deficit hyperactivity disorder"},
+        "group_mapping": {
+            "Control": "Control",
+            "ADHD": "Attention deficit hyperactivity disorder",
+        },
         "sex_mapping": {1: "M", 2: "F"},
     },
     "ds003505": {"default_group": "Control"},
@@ -508,7 +570,12 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds004182": {"default_group": "Control"},
     "ds004187": {"default_group": "Control"},
     "ds004192": {"default_group": "Control"},
-    "ds004194": {"group_mapping": {"Patient": "Intractable epilepsy"}},
+    "ds004194": {
+        "group_mapping": {
+            "Patient": "Intractable epilepsy",
+            "patient": "Intractable epilepsy",
+        }
+    },
     "ds004196": {"default_group": "Control"},
     "ds004199": {"group_mapping": {"fcd": "Focal cortical dysplasia", "hc": "Control"}},
     "ds004212": {"default_group": "Control"},
@@ -542,7 +609,10 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds004341": {"default_group": "Control"},
     "ds004349": {"default_group": "Control", "sex_mapping": {1: "M", 2: "F"}},
     "ds004359": {"default_group": "Control"},
-    "ds004392": {"default_group": "Parkinson’s disease", "sex_mapping": {1: "M", 0: "F"}},
+    "ds004392": {
+        "default_group": "Parkinson’s disease",
+        "sex_mapping": {1: "M", 0: "F"},
+    },
     "ds004393": {"default_group": "Control"},
     "ds004400": {"default_group": "Control"},
     "ds004406": {"default_group": "Control"},
@@ -621,7 +691,11 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds004829": {"default_group": "Control"},
     "ds004835": {"default_group": "Control"},
     "ds004837": {
-        "group_mapping": {"HC": "Control", "FESZ": "First-episode schizophrenia", "FEAFF": "First-episode affective psychosis"}
+        "group_mapping": {
+            "HC": "Control",
+            "FESZ": "First-episode schizophrenia",
+            "FEAFF": "First-episode affective psychosis",
+        }
     },
     "ds004848": {"group_mapping": {"Control": "Control", "DP": "Developmental prosopagnosic"}},
     "ds004856": {"default_group": "Control"},
@@ -649,7 +723,14 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds005025": {"default_group": "Control"},
     "ds005026": {"group_mapping": {"nl": "Control", "hl": "Hearing loss"}},
     "ds005027": {"sex_mapping": {2: "M", 1: "F"}},
-    "ds005038": {"group_mapping": {"passiv": "Control", "comp": "Control", "incomp": "Control", "-": "Control"}},
+    "ds005038": {
+        "group_mapping": {
+            "passiv": "Control",
+            "comp": "Control",
+            "incomp": "Control",
+            "-": "Control",
+        }
+    },
     "ds005050": {"default_group": "Control"},
     "ds005056": {"default_group": "Control"},
     "ds005073": {"group_mapping": {"1": "Bipolar", "2": "Schizophrenia/Schizoaffective"}},
@@ -704,7 +785,12 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds005469": {"group_mapping": {"control": "Control", "military": "Control"}},
     "ds005479": {"default_group": "Control"},
     "ds005498": {
-        "group_mapping": {"NTHC": "Control", "TEHC": "Control", "NTS": "Psychiatric symptoms", "TIS": "Psychiatric symptoms"},
+        "group_mapping": {
+            "NTHC": "Control",
+            "TEHC": "Control",
+            "NTS": "Psychiatric symptoms",
+            "TIS": "Psychiatric symptoms",
+        },
         "sex_mapping": {2: "M", 1: "F"},
     },
     "ds005503": {"default_group": "Control"},
@@ -758,7 +844,10 @@ DATASET_SPECIFIC_CONFIGS = {
     },
     "ds005894": {"default_group": "Control"},
     "ds005899": {
-        "group_mapping": {"0": "Control", "1": "Attention deficit hyperactivity disorder"},
+        "group_mapping": {
+            "0": "Control",
+            "1": "Attention deficit hyperactivity disorder",
+        },
         "sex_mapping": {2: "M", 1: "F"},
     },
     "ds005903": {"group_mapping": {"main": "Control"}},
@@ -790,7 +879,13 @@ DATASET_SPECIFIC_CONFIGS = {
     "ds006267": {"default_group": "Control"},
     "ds006334": {"default_group": "Control"},
     "ds006391": {"default_group": "Control"},
-    "ds006395": {"group_mapping": {"HC": "Control", "ULD": "Upper limb dystonia", "CD": "Cervical dystonia"}},
+    "ds006395": {
+        "group_mapping": {
+            "HC": "Control",
+            "ULD": "Upper limb dystonia",
+            "CD": "Cervical dystonia",
+        }
+    },
     "ds006444": {"default_group": "Control"},
     "ds006472": {"group_mapping": {"control": "Control", "DP": "Developmental prosopagnosics"}},
 }
@@ -805,7 +900,9 @@ def main(
     save_as_tensor=False,
 ):
     saving_config = get_FOMO300K_saving_config(
-        save_as_tensor=save_as_tensor, save_dset_metadata=save_dset_metadata, bidsify=bidsify
+        save_as_tensor=save_as_tensor,
+        save_dset_metadata=save_dset_metadata,
+        bidsify=bidsify,
     )
     preprocessing_config = get_noresampling_preprocessing_config()
 
@@ -864,13 +961,23 @@ def process(
             "_roi",
             "_ROI",
             "dixon",
+            "18FFDG",
+            "_pet",
+            "trc-18FAV45",
         ],
         patterns_DWI=["dwi"],
-        patterns_PET=["18FFDG", "_pet", "trc-18FAV45"],
+        patterns_PET=[],
         patterns_perfusion=["asl", "m0scan", "MZero"],
         patterns_m0=["m0scan", "MZero"],
         patterns_bidsify=[r"sub-([A-Za-z0-9]+)"],
-        df_columns=["participant_id", "session_id", "age", "sex", "group", "handedness"],
+        df_columns=[
+            "participant_id",
+            "session_id",
+            "age",
+            "sex",
+            "group",
+            "handedness",
+        ],
     )
 
     source_dir = os.path.join(path, subdir)
@@ -919,7 +1026,7 @@ def process(
         source_files_excluded=[],
         processes=processes,
     )
-    print(f"\nProcessing complete!")
+    print("\nProcessing complete!")
     print(f"Successfully processed: {len(processed_datasets)} datasets")
     print(f"Failed: {len(failed_datasets)} datasets")
 
@@ -940,7 +1047,7 @@ def process_single_dataset(
     print(f"Processing dataset: {dataset_name}")
 
     target_dir = os.path.join(target_dir, dataset_name)
-    os.makedirs(target_dir, exist_ok=True)
+    prepare_target_dir(target_dir, saving_config.save_as_tensor)
 
     files_standard, files_DWI, files_PET, files_Perf, files_excluded = recursive_find_and_group_files(
         source_dir,
@@ -980,7 +1087,7 @@ def process_single_dataset(
         processed_files = recursive_find_files(target_dir, extensions=dataset_config.in_extensions + [".pt"])
 
         if not processed_files:
-            print(f"Warning: No files processed, remove dataset directory")
+            print("Warning: No files processed, remove dataset directory")
             shutil.rmtree(target_dir)
             return None
 
@@ -1006,7 +1113,7 @@ def process_single_dataset(
         )
 
         if saving_config.bidsify:
-            subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep='\t', index=False)
+            subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep="\t", index=False)
 
             mapping_df = rename_files_with_mapping(
                 target_dir=target_dir,
@@ -1015,7 +1122,7 @@ def process_single_dataset(
             )
 
         if saving_config.bidsify or saving_config.save_dset_metadata:
-            mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep='\t', index=False)
+            mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep="\t", index=False)
 
     postprocess_standard_dataset(
         dataset_config=dataset_config,

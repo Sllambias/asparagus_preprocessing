@@ -22,7 +22,7 @@ def get_iso_preprocessing_config(n_modalities: int = 1) -> PreprocessingConfig:
 
 
 def get_FOMO300K_saving_config(save_as_tensor: bool, save_dset_metadata: bool, bidsify: bool) -> SavingConfig:
-    if save_as_tensor == True:
+    if save_as_tensor == True:  # noqa: E712
         save_file_metadata = True
     else:
         save_file_metadata = False

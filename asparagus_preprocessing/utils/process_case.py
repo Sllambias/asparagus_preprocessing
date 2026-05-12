@@ -1,23 +1,27 @@
-import numpy as np
-import nibabel as nib
-import os
 import logging
 import math
-from typing import Union, List, Optional
-from dataclasses import asdict
-from asparagus_preprocessing.utils.pad import pad_case_to_size
-from asparagus_preprocessing.utils.nifti import apply_nifti_preprocessing_and_return_numpy
-from asparagus_preprocessing.utils.saving import save_data_and_metadata
+import nibabel as nib
+import numpy as np
+import os
 from asparagus_preprocessing.utils.bbox import get_bbox_for_foreground
 from asparagus_preprocessing.utils.crop import crop_to_box
+from asparagus_preprocessing.utils.nifti import (
+    apply_nifti_preprocessing_and_return_numpy,
+)
+from asparagus_preprocessing.utils.pad import pad_case_to_size
 from asparagus_preprocessing.utils.resample import resample_and_normalize_case
+from asparagus_preprocessing.utils.saving import save_data_and_metadata
+from dataclasses import asdict
+from typing import List, Optional, Union
 
 
 def process_mri_case(path, image_save_path, preprocessing_config, saving_config):
     # TODO: if no metadata saving, do not check (look at saving_config)
     ext = ".pt" if saving_config.save_as_tensor else ".nii.gz"
-    if (os.path.isfile(image_save_path + ext) and not saving_config.save_file_metadata) or (
-        os.path.isfile(image_save_path + ext) and saving_config.save_file_metadata and os.path.isfile(image_save_path + ".pkl")
+    is_file = os.path.isfile(image_save_path + ext)
+
+    if (is_file and not saving_config.save_file_metadata) or (
+        is_file and saving_config.save_file_metadata and os.path.isfile(image_save_path + ".pkl")
     ):
         return
     try:
@@ -43,16 +47,20 @@ def process_dwi_case(
     use_trace_computation=False,
     strict=True,
 ):
+    # Check if bvals and bvecs files exist before attempting to load the image
+    if not os.path.exists(bvals_path) or not os.path.exists(bvecs_path):
+        logging.error(f"SKIPPED: Missing bval or bvec for: {path}")
+        return
+
     try:
         image = nib.load(path)
-
         method_name = "trace computation" if use_trace_computation else "averaging"
         logging.debug(f"Processing {path} using {method_name} method")
 
         if len(image.shape) == 4 and image.shape[-1] != 1:
             bvals = np.loadtxt(bvals_path)
             bvecs = np.loadtxt(bvecs_path)
-                
+
             # Check if bvecs need transposing to (3, N) format
             if bvecs.shape[1] == 3 and bvecs.shape[0] > 3:
                 # Convert from (N, 3) to (3, N) format
@@ -60,12 +68,13 @@ def process_dwi_case(
             elif bvecs.shape[0] != 3:
                 logging.error(f"Invalid bvecs shape: {bvecs.shape}. Expected (3, N) or (N, 3)")
                 return
-            
-            if not os.path.exists(bvals_path) or not os.path.exists(bvecs_path):
-                logging.error(f"SKIPPED: Missing bval or bvec for: {path}")
-                return
+
             images, bvals = extract_3ddwi_from_4ddwi(
-                image, bvals, bvecs, use_trace_computation=use_trace_computation, strict=strict
+                image,
+                bvals,
+                bvecs,
+                use_trace_computation=use_trace_computation,
+                strict=strict,
             )
         else:
             if len(image.shape) == 4:  # Must be shape[-1] == 1
@@ -135,7 +144,14 @@ def process_pet_case(path, image_save_path, preprocessing_config, saving_config,
         logging.error(f"Unexpected error {e}: {path}")
 
 
-def process_perf_case(path, image_save_path, m0scan_patterns, preprocessing_config, saving_config, strict=True):
+def process_perf_case(
+    path,
+    image_save_path,
+    m0scan_patterns,
+    preprocessing_config,
+    saving_config,
+    strict=True,
+):
     ext = ".pt" if saving_config.save_as_tensor else ".nii.gz"
 
     if (os.path.isfile(image_save_path + ext) and not saving_config.save_file_metadata) or (
@@ -190,7 +206,12 @@ def preprocess_case_without_label(
     )
 
     images = [safe_squeeze(image) for image in images]
-    verify_3D_image_is_valid(images, supposed_to_be_3D=supposed_to_be_3D, remove_nans=remove_nans, min_slices=min_slices)
+    verify_3D_image_is_valid(
+        images,
+        supposed_to_be_3D=supposed_to_be_3D,
+        remove_nans=remove_nans,
+        min_slices=min_slices,
+    )
     original_size = images[0].shape
 
     # Cropping is performed to save computational resources. We are only removing background.
@@ -261,7 +282,12 @@ def preprocess_case_with_label(
     )
 
     images = [safe_squeeze(image) for image in images]
-    verify_3D_image_is_valid(images, supposed_to_be_3D=supposed_to_be_3D, remove_nans=remove_nans, min_slices=min_slices)
+    verify_3D_image_is_valid(
+        images,
+        supposed_to_be_3D=supposed_to_be_3D,
+        remove_nans=remove_nans,
+        min_slices=min_slices,
+    )
     original_size = images[0].shape
 
     # Cropping is performed to save computational resources. We are only removing background.
@@ -305,24 +331,29 @@ def preprocess_case_with_label(
     return images, label, image_properties
 
 
-def verify_3D_image_is_valid(images: list, supposed_to_be_3D: bool = True, remove_nans: bool = True, min_slices: int = 15):
+def verify_3D_image_is_valid(
+    images: list,
+    supposed_to_be_3D: bool = True,
+    remove_nans: bool = True,
+    min_slices: int = 15,
+):
     for image in images:
         if supposed_to_be_3D and len(image.shape) != 3:
             raise ValueError(f"image is not 3D. Shape: {image.shape}.  ")
         if np.min(image.shape) < min_slices:
             raise ValueError(f"image is too small. Shape: {image.shape}. ")
         if np.count_nonzero(image) < 1:
-            raise ValueError(f"image is all zeros. ")
+            raise ValueError("image is all zeros. ")
         if remove_nans:
-            if np.isnan(np.sum(image)) is True:
-                raise ValueError(f"image contains NaN values. ")
+            if np.any(np.isnan(image)):
+                raise ValueError("image contains NaN values. ")
 
 
 def extract_3dpet_from_4dpet(image, strict=True):
     if strict:
-        assert (
-            np.min(image.shape) == image.shape[-1]
-        ), f"Min shape not last dimension for PET. Set strict to False to allow this. Found shape {image.shape}"
+        assert np.min(image.shape) == image.shape[-1], (
+            f"Min shape not last dimension for PET. Set strict to False to allow this. Found shape {image.shape}"
+        )
     image_arr = np.mean(image.get_fdata(), axis=-1)
     header = image.header.copy()
     header.set_data_shape(image_arr.shape)
@@ -336,9 +367,9 @@ def extract_3ddwi_from_4ddwi(image, bvals, bvecs, bval_tolerance=50, strict=True
     The use_trace_computation parameter determines the processing method for the entire image.
     """
     if strict:
-        assert (
-            np.min(image.shape) == image.shape[-1]
-        ), f"Min shape not last dimension for DWI. Set strict to False to allow this. Found shape {image.shape}"
+        assert np.min(image.shape) == image.shape[-1], (
+            f"Min shape not last dimension for DWI. Set strict to False to allow this. Found shape {image.shape}"
+        )
 
     old_header = image.header.copy()
 
@@ -354,7 +385,13 @@ def extract_3ddwi_from_4ddwi(image, bvals, bvecs, bval_tolerance=50, strict=True
             dwi = get_data_for_bval_group(group_bval, indices, bvals, bvecs, image.get_fdata(), use_trace=False)
         else:
             dwi = get_data_for_bval_group(
-                group_bval, indices, bvals, bvecs, image.get_fdata(), use_trace=use_trace_computation, bval_groups=bval_groups
+                group_bval,
+                indices,
+                bvals,
+                bvecs,
+                image.get_fdata(),
+                use_trace=use_trace_computation,
+                bval_groups=bval_groups,
             )
 
         if dwi is not None:  # Only add if we got data (not skipped)
@@ -473,11 +510,10 @@ def get_data_for_bval_group(group_bval, indices, bvals, bvecs, data, use_trace=F
 
 
 def extract_3dperfusion_from_4dperfusion(image, is_m0scan=False, strict=True):
-
     if strict:
-        assert (
-            np.min(image.shape) == image.shape[-1]
-        ), f"Min shape not last dimension for DWI. Set strict to False to allow this. Found shape {image.shape}"
+        assert np.min(image.shape) == image.shape[-1], (
+            f"Min shape not last dimension for DWI. Set strict to False to allow this. Found shape {image.shape}"
+        )
 
     data = image.get_fdata()
     tp = data.shape[-1]  # number of time points
@@ -525,7 +561,7 @@ def compute_trace_adc(selected_volumes, individual_bvals, bval_groups, full_data
                     break
 
         if b0_data is None:
-            logging.warning(f"No b0/near-b0 found for trace computation, reverting to averaging")
+            logging.warning("No b0/near-b0 found for trace computation, reverting to averaging")
             return np.mean(selected_volumes, axis=-1)
 
         # Compute ADC for each direction (x, y, z)
@@ -571,7 +607,7 @@ def compute_trace_adc(selected_volumes, individual_bvals, bval_groups, full_data
 
     except Exception as e:
         logging.error(f"Error in trace computation: {e}")
-        logging.info(f"Reverting to averaging method")
+        logging.info("Reverting to averaging method")
         return np.mean(selected_volumes, axis=-1)
 
 
@@ -601,7 +637,9 @@ def determine_target_size(
     elif target_spacing is not None:
         target_spacing = np.array(target_spacing, dtype=float)
         resample_target_size, final_target_size, new_spacing = determine_resample_size_from_target_spacing(
-            current_size=image_shape, current_spacing=original_spacing, target_spacing=target_spacing
+            current_size=image_shape,
+            current_spacing=original_spacing,
+            target_spacing=target_spacing,
         )
     else:
         resample_target_size = image_shape
@@ -625,32 +663,40 @@ def determine_resample_size_from_target_size(current_size, current_spacing, targ
     return resample_target_size, final_target_size, new_spacing
 
 
-def determine_resample_size_from_target_spacing(current_size, current_spacing, target_spacing: np.ndarray):
-    final_target_size = None
-    resample_target_size = np.round((current_spacing / target_spacing).astype(float) * current_size).astype(int)
-    new_spacing = target_spacing.tolist()
-    return resample_target_size, final_target_size, new_spacing
+def determine_resample_size_from_target_spacing(
+    current_size: np.ndarray,
+    current_spacing: np.ndarray,
+    target_spacing: np.ndarray,
+) -> tuple[np.ndarray, None, list[float]]:
+    resample_target_size = np.round((current_spacing / target_spacing) * current_size).astype(int)
+    return resample_target_size, None, target_spacing.tolist()
 
 
-def get_foreground_locations(label, per_class=False, max_locs_total=100000):
-    foreground_locations = {}
+def get_foreground_locations(
+    label: np.ndarray,
+    per_class: bool = False,
+    max_locs_total: int = 100_000,
+) -> dict[str, list]:
+    foreground_locations: dict[str, list] = {}
+
     if not per_class:
-        foreground_locs_for_all = np.array(np.nonzero(label)).T[::10].tolist()
-        if len(foreground_locs_for_all) > 0:
-            if len(foreground_locs_for_all) > max_locs_total:
-                foreground_locs_for_all = foreground_locs_for_all[:: round(len(foreground_locs_for_all) / max_locs_total)]
-            foreground_locations["1"] = foreground_locs_for_all
+        locs = np.array(np.nonzero(label)).T[::10].tolist()
+        if locs:
+            if len(locs) > max_locs_total:
+                step = round(len(locs) / max_locs_total)
+                locs = locs[::step]
+            foreground_locations["1"] = locs
     else:
-        foreground_classes_present = np.unique(label)[1:]
-        if len(foreground_classes_present) == 0:
+        classes = np.unique(label)[1:]
+        if len(classes) == 0:
             return foreground_locations
-        max_locs_per_class = int(max_locs_total / len(foreground_classes_present))
-        for c in foreground_classes_present:
-            foreground_locs_for_c = np.array(np.where(label == int(c))).T[::10]
-            if len(foreground_locs_for_c) > 0:
-                if len(foreground_locs_for_c) > max_locs_per_class:
-                    foreground_locs_for_c = foreground_locs_for_c[:: round(len(foreground_locs_for_c) / max_locs_per_class)]
-                foreground_locations[str(int(c))] = foreground_locs_for_c
+        max_per_class = max_locs_total // len(classes)
+        for c in classes:
+            locs = np.array(np.where(label == int(c))).T[::10]
+            if len(locs) > 0:
+                if len(locs) > max_per_class:
+                    locs = locs[:: round(len(locs) / max_per_class)]
+                foreground_locations[str(int(c))] = locs
     return foreground_locations
 
 

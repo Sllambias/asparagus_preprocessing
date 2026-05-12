@@ -1,14 +1,16 @@
 import os
 from asparagus_preprocessing.configs.preprocessing_presets import (
-    get_noresampling_preprocessing_config,
     get_FOMO300K_saving_config,
+    get_noresampling_preprocessing_config,
 )
-from asparagus_preprocessing.paths import get_data_path, get_source_path
-from asparagus_preprocessing.utils.metadata_generation import generate_dataset_json, combine_datasets_without_splits
-from asparagus_preprocessing.utils.saving import enhanced_save_json
+from asparagus_preprocessing.paths import get_data_path
 from asparagus_preprocessing.utils.dataclasses import DatasetConfig
-from asparagus_preprocessing.utils.loading import load_json
-from asparagus_preprocessing.utils.detect import find_processed_dataset
+from asparagus_preprocessing.utils.metadata_generation import (
+    combine_datasets_without_splits,
+    generate_dataset_json,
+)
+from asparagus_preprocessing.utils.path import prepare_target_dir
+from asparagus_preprocessing.utils.saving import enhanced_save_json
 
 
 def main(
@@ -55,8 +57,7 @@ def main(
         "PT033",
         "PT034",
         "PT035",
-        "PT036",
-        "PT037",
+        "PT036"
     ]
     dataset_config = DatasetConfig(
         task_name="PT900_FOMO300K",
@@ -74,11 +75,13 @@ def main(
     )
     preprocessing_config = get_noresampling_preprocessing_config()
     saving_config = get_FOMO300K_saving_config(
-        save_as_tensor=save_as_tensor, save_dset_metadata=save_dset_metadata, bidsify=bidsify
+        save_as_tensor=save_as_tensor,
+        save_dset_metadata=save_dset_metadata,
+        bidsify=bidsify,
     )
 
     target_dir = os.path.join(get_data_path(), dataset_config.task_name)
-    os.makedirs(target_dir, exist_ok=True)
+    prepare_target_dir(target_dir, saving_config.save_as_tensor)
 
     all_dataset_json, all_files = combine_datasets_without_splits(dataset_collection)
 

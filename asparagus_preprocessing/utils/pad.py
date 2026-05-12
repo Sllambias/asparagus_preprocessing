@@ -15,7 +15,10 @@ def get_pad_kwargs(data, pad_value):
     if pad_value == "min":
         pad_kwargs = {"constant_values": data.min(), "mode": "constant"}
     elif pad_value == "zero":
-        pad_kwargs = {"constant_values": np.zeros(1, dtype=data.dtype), "mode": "constant"}
+        pad_kwargs = {
+            "constant_values": np.zeros(1, dtype=data.dtype),
+            "mode": "constant",
+        }
     elif isinstance(pad_value, int) or isinstance(pad_value, float):
         pad_kwargs = {"constant_values": pad_value, "mode": "constant"}
     elif pad_value == "edge":

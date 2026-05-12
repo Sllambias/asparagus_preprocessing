@@ -1,9 +1,8 @@
 import argparse
-import os
-import re
 import asparagus_preprocessing
+import os
 from asparagus_preprocessing.paths import get_data_path
-from asparagus_preprocessing.utils import load_json, split, all_split_fn, dynamic_split
+from asparagus_preprocessing.utils import dynamic_split, load_json, split
 
 
 def main():
@@ -25,12 +24,18 @@ def main():
     files = load_json(os.path.join(get_data_path(), args.dataset, "paths.json"))
     if args.fn:
         save_path = os.path.join(get_data_path(), args.dataset, args.fn + ".json")
-        split(files=files, fn=getattr(asparagus_preprocessing.utils.splitting, args.fn), save_path=save_path)
+        split(
+            files=files,
+            fn=getattr(asparagus_preprocessing.utils.splitting, args.fn),
+            save_path=save_path,
+        )
     elif args.vals:
         if sum(args.vals) != 100 or len(args.vals) != 3:
             raise ValueError("Please provide three integers that sum to 100 for TRAIN/VAL/TEST split.")
         save_path = os.path.join(
-            get_data_path(), args.dataset, f"split_{args.vals[0]:02d}_{args.vals[1]:02d}_{args.vals[2]:02d}" + ".json"
+            get_data_path(),
+            args.dataset,
+            f"split_{args.vals[0]:02d}_{args.vals[1]:02d}_{args.vals[2]:02d}" + ".json",
         )
         dynamic_split(
             files=files,
