@@ -7,6 +7,8 @@ from sklearn.model_selection import train_test_split
 def split_40_10_50(files: list, test: bool = False, seed_increment: int = 0):
     return non_stratified_split(files, 0.40, 0.10, 0.50, test, seed_increment, base_seed=28300211)
 
+def split_80_10_10(files: list, test: bool = False, seed_increment: int = 0):
+    return non_stratified_split(files, 0.80, 0.10, 0.10, test, seed_increment, base_seed=28300211)
 
 def BIDSsplit_40_10_50(files: list, test: bool = False, seed_increment: int = 0):
     sub_pattern = r"/sub-\d+/"
