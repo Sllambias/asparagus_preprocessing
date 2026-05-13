@@ -71,7 +71,6 @@ def main(
         n_classes=3,
         split="split_80_10_10",
         n_modalities=1,
-        split=None,
         patterns_exclusion=["labels", "seg.nii.gz"],
     )
 
