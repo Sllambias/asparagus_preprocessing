@@ -1,4 +1,4 @@
-name: deploy to open
+name: deploy from open
 
 on:
   workflow_dispatch:
@@ -11,8 +11,8 @@ permissions:
 
 jobs:
   deploy:
-    if: |      
-      ${{ (github.event.repository.name == 'internal_asparagus_preprocessing' &&
+    if: |
+      ${{ (github.event.repository.name == 'asparagus_preprocessing' &&
       github.event.commits[0].message != 'deploy changes' &&
       github.event.commits[0].author.name != 'github-actions[bot]') }}
     name: Push built output to target repo via SSH
@@ -25,23 +25,23 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Configure git author
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Sllambias/internal_asparagus_preprocessing
-          git remote add ssh-origin git@github.com:Sllambias/asparagus_preprocessing.git
-
       - name: Start ssh-agent and add deploy key
         uses: webfactory/ssh-agent@v0.9.1
         with:
           ssh-private-key: ${{ secrets.DEPLOY }}
+          
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Sllambias/asparagus_preprocessing
+          git remote add ssh-origin git@github.com:Sllambias/internal_asparagus_preprocessing.git
 
       - name: Ensure github.com is in known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan github.com >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts     
 
       - name: Update deploy branch and commit changes
         run: |
@@ -50,13 +50,13 @@ jobs:
           git merge --squash -X theirs origin/main --allow-unrelated-histories
           git restore --staged README.md
           git commit -m "deploy changes"
-          
+
       - name: Sync repositories
         run: |
-          echo "Pushing to SSH remote: git@github.com:Sllambias/asparagus_preprocessing.git -> branch main"
-
+          echo "Pushing to SSH remote: git@github.com:Sllambias/internal_asparagus_preprocessing.git -> branch main"
+          
           git remote -v
           echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
           ssh -T -o StrictHostKeyChecking=no git@github.com || true
-
+          
           git push -u ssh-origin HEAD:main
