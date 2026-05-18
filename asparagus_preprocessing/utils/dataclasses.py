@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -147,6 +147,11 @@ class DatasetConfig:
         patterns_bidsify: Regular expressions used to extract subject and
             session identifiers from file paths when ``bidsify`` is enabled,
             e.g. ``[r"sub-([A-Za-z0-9]+)"]``.
+        modalities: Optional logical modality names in saved channel order.
+            This is useful for multi-version datasets where ``n_modalities``
+            alone is not enough to reproduce which input channels were used.
+        channel_names: Optional mapping from channel index to logical modality
+            name, e.g. ``{"0": "flair", "1": "adc"}``.
     """
 
     # Identity
@@ -168,3 +173,5 @@ class DatasetConfig:
     # Metadata / BIDS
     df_columns: List[str] = field(default_factory=list)
     patterns_bidsify: List[str] = field(default_factory=list)
+    modalities: List[str] = field(default_factory=list)
+    channel_names: Dict[str, str] = field(default_factory=dict)
