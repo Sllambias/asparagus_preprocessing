@@ -91,28 +91,34 @@ def postprocess_standard_dataset(
         patterns_exclusion=dataset_config.patterns_exclusion,
         processes=processes,
     )
+    metadata = {
+        "files_source_directory_total": source_all_files,
+        "files_source_directory_standard": len(source_files_standard),
+        "files_source_directory_DWI": len(source_files_DWI),
+        "files_source_directory_PET": len(source_files_PET),
+        "files_source_directory_Perfusion": len(source_files_Perf),
+        "files_source_directory_excluded": len(source_files_excluded),
+        "files_target_directory_total": len(target_all_files),
+        "files_target_directory_standard": len(target_files_standard),
+        "files_target_directory_DWI": len(target_files_DWI),
+        "files_target_directory_PET": len(target_files_PET),
+        "files_target_directory_Perfusion": len(target_files_Perf),
+        "files_delta_after_processing": files_delta,
+        "n_classes": dataset_config.n_classes,
+        "n_modalities": dataset_config.n_modalities,
+    }
+    if dataset_config.modalities:
+        metadata["modalities"] = dataset_config.modalities
+    if dataset_config.channel_names:
+        metadata["channel_names"] = dataset_config.channel_names
+
     generate_dataset_json(
         os.path.join(target_dir, "dataset.json"),
         dataset_name=dataset_config.task_name,
         preprocessing_config=preprocessing_config,
         saving_config=saving_config,
         dataset_config=dataset_config,
-        metadata={
-            "files_source_directory_total": source_all_files,
-            "files_source_directory_standard": len(source_files_standard),
-            "files_source_directory_DWI": len(source_files_DWI),
-            "files_source_directory_PET": len(source_files_PET),
-            "files_source_directory_Perfusion": len(source_files_Perf),
-            "files_source_directory_excluded": len(source_files_excluded),
-            "files_target_directory_total": len(target_all_files),
-            "files_target_directory_standard": len(target_files_standard),
-            "files_target_directory_DWI": len(target_files_DWI),
-            "files_target_directory_PET": len(target_files_PET),
-            "files_target_directory_Perfusion": len(target_files_Perf),
-            "files_delta_after_processing": files_delta,
-            "n_classes": dataset_config.n_classes,
-            "n_modalities": dataset_config.n_modalities,
-        },
+        metadata=metadata,
     )
     enhanced_save_json(target_all_files, os.path.join(target_dir, "paths.json"))
 
