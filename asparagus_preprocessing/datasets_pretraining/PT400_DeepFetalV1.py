@@ -17,11 +17,11 @@ def main(
     logging.warning("Loading DF")
     df = pl.read_csv(path)
     df = df.select(["phair_hash", "no_ocr_preprocessed_file_path"]).drop_nulls()
-    subjects = df["phair_hash"]
+    subjects = df["phair_hash"].to_list()
 
     logging.warning("Splitting on subject level")
     train_subjects, val_subjects, test_subjects = dynamic_split(
-        files=subjects, train_ratio=0.9, val_ratio=0.01, test_ratio=0.09
+        files=subjects, train_ratio=0.9, val_ratio=0.01, test_ratio=0.09, folds=1
     )
 
     logging.warning("Filtering image paths on into train,val,test on subject splits")
