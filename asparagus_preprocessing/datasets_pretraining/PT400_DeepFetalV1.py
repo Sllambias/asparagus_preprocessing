@@ -6,6 +6,7 @@ from asparagus_preprocessing.utils.splitting import dynamic_split
 
 def main(
     path: str = "/projects/users/people/seblla/repos/EHR_extract/all_images_2026-05-29.csv",
+    # path: str = "/Users/zcr545/Desktop/Projects/repos/EHR_extract/test_data/test_table.csv",
     subdir: str = "",
     processes=12,
     bidsify=False,
@@ -13,6 +14,7 @@ def main(
     save_as_tensor=False,
 ):
     df = pl.read_csv(path)
+    df = df.select(["phair_hash", "no_ocr_preprocessed_file_path"]).drop_nulls()
     subjects = df["phair_hash"]
 
     train_subjects, val_subjects, test_subjects = dynamic_split(
