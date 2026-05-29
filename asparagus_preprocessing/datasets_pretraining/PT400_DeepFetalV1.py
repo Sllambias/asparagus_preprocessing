@@ -1,3 +1,4 @@
+import logging
 import polars as pl
 from asparagus_preprocessing.utils.dataset_registration import register_dataset
 from asparagus_preprocessing.utils.parser import asparagus_parser
@@ -13,13 +14,17 @@ def main(
     save_dset_metadata=False,
     save_as_tensor=False,
 ):
+    logging.warning("Loading DF")
     df = pl.read_csv(path)
     df = df.select(["phair_hash", "no_ocr_preprocessed_file_path"]).drop_nulls()
     subjects = df["phair_hash"]
 
+    logging.warning("Splitting on subject level")
     train_subjects, val_subjects, test_subjects = dynamic_split(
         files=subjects, train_ratio=0.9, val_ratio=0.01, test_ratio=0.09
     )
+
+    logging.warning("Filtering image paths on into train,val,test on subject splits")
     train_df = df.filter(pl.col("phair_hash").is_in(train_subjects))
     train_files = train_df["no_ocr_preprocessed_file_path"].to_list()
 
@@ -29,6 +34,7 @@ def main(
     test_df = df.filter(pl.col("phair_hash").is_in(test_subjects))
     test_files = test_df["no_ocr_preprocessed_file_path"].to_list()
 
+    logging.warning("Saving")
     register_dataset(
         task_name="PT400_DeepFetalV1",
         n_classes=1,
