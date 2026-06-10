@@ -1,9 +1,6 @@
 import logging
-import os
-from dataclasses import asdict
-
 import nibabel as nib
-
+import os
 from asparagus_preprocessing.configs.preprocessing_presets import (
     get_FOMO_saving_config,
     get_noresampling_preprocessing_config,
@@ -17,6 +14,7 @@ from asparagus_preprocessing.utils.parser import asparagus_parser
 from asparagus_preprocessing.utils.path import get_image_output_paths
 from asparagus_preprocessing.utils.process_case import preprocess_case_without_label
 from asparagus_preprocessing.utils.saving import save_clsreg_data_and_metadata
+from dataclasses import asdict
 
 
 def process_sample(file_in, file_out, dataset_config, preprocessing_config, saving_config):
@@ -79,9 +77,7 @@ def main(
     )
 
     saving_config = get_FOMO_saving_config(save_as_tensor=save_as_tensor)
-    preprocessing_config = get_noresampling_preprocessing_config(
-        n_modalities=dataset_config.n_modalities
-    )
+    preprocessing_config = get_noresampling_preprocessing_config(n_modalities=dataset_config.n_modalities)
 
     source_dir = os.path.join(path, subdir)
     target_dir = os.path.join(get_data_path(), dataset_config.task_name)
@@ -133,4 +129,3 @@ if __name__ == "__main__":
         save_dset_metadata=args.save_dset_metadata,
         save_as_tensor=args.save_as_tensor,
     )
-

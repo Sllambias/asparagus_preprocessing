@@ -205,5 +205,5 @@ DEFAULT_MODALITY_PATTERNS = {
     "t1": {"suffix": "T1w", "folder": "anat"},
     "mese": {"suffix": "MESE", "folder": "anat"},
     # PET sequences
-    "pet": {"suffix": "pet", "folder": "pet"}
+    "pet": {"suffix": "pet", "folder": "pet"},
 }

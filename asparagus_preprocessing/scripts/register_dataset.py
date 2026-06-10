@@ -48,7 +48,9 @@ def main():
     if args.data_dir is not None:
         ratio_sum = args.train_ratio + args.val_ratio + args.test_ratio
         if ratio_sum != 100:
-            parser.error(f"Ratios must sum to 100, got {ratio_sum} ({args.train_ratio} + {args.val_ratio} + {args.test_ratio})")
+            parser.error(
+                f"Ratios must sum to 100, got {ratio_sum} ({args.train_ratio} + {args.val_ratio} + {args.test_ratio})"
+            )
 
     register_dataset(
         task_name=args.task_name,

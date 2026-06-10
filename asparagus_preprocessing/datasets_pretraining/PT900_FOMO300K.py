@@ -9,6 +9,7 @@ from asparagus_preprocessing.utils.metadata_generation import (
     combine_datasets_without_splits,
     generate_dataset_json,
 )
+from asparagus_preprocessing.utils.parser import asparagus_parser
 from asparagus_preprocessing.utils.path import prepare_target_dir
 from asparagus_preprocessing.utils.saving import enhanced_save_json
 
@@ -57,7 +58,7 @@ def main(
         "PT033",
         "PT034",
         "PT035",
-        "PT036"
+        "PT036",
     ]
     dataset_config = DatasetConfig(
         task_name="PT900_FOMO300K",

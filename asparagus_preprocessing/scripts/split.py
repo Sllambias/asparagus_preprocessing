@@ -8,7 +8,8 @@ from asparagus_preprocessing.utils import dynamic_split, load_json, split
 def main():
     parser = argparse.ArgumentParser(
         "Parser for dataset splitting. \n "
-        "EITHER use --fn to use a predefined function OR --vals to do an UNSTRATIFIED split using specified ratios for TRAIN/VAL/TEST. \n"
+        "EITHER use --fn to use a predefined function OR --vals to do an UNSTRATIFIED split using \
+            specified ratios for TRAIN/VAL/TEST. \n"
         "e.g. --vals 40 10 50 for 40% training, 10% validation, 50% testing."
     )
     parser.add_argument(

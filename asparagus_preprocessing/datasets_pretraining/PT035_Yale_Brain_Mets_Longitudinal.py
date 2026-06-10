@@ -126,7 +126,7 @@ def process(
     if saving_config.bidsify:
         subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep="\t", index=False)
 
-        mapping_df = rename_files_with_mapping(
+        rename_files_with_mapping(
             target_dir=target_dir,
             expanded_df=expanded_df,
             modality_patterns=my_modality_overrides,

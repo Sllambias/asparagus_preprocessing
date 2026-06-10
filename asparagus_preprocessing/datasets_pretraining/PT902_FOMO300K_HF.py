@@ -26,16 +26,15 @@ import os
 import shutil
 import torch
 import zipfile
-from multiprocessing import Pool
-from time import time
-
 from asparagus_preprocessing.configs.preprocessing_presets import (
-    get_noresampling_preprocessing_config,
     get_FOMO_saving_config,
+    get_noresampling_preprocessing_config,
 )
-from asparagus_preprocessing.utils.saving import enhanced_save_json, save_pickle
 from asparagus_preprocessing.utils.detect import recursive_find_files
 from asparagus_preprocessing.utils.metadata_generation import generate_dataset_json
+from asparagus_preprocessing.utils.saving import enhanced_save_json, save_pickle
+from multiprocessing import Pool
+from time import time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -214,15 +213,13 @@ def main(**kwargs):
     parser.add_argument("--input_dir", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default=None)
     parser.add_argument("--num_workers", type=int, default=12)
-    parser.add_argument("--unzip_only", action="store_true", default=False,
-                        help="Only unzip in-place and create json files, no .pt conversion")
+    parser.add_argument(
+        "--unzip_only", action="store_true", default=False, help="Only unzip in-place and create json files, no .pt conversion"
+    )
     args = parser.parse_args()
 
     if bool(args.unzip_only) == bool(args.output_dir):
-        parser.error(
-            "Provide exactly one of --output_dir (convert to .pt) "
-            "or --unzip_only (unzip in place)"
-        )
+        parser.error("Provide exactly one of --output_dir (convert to .pt) or --unzip_only (unzip in place)")
 
     saving_config = get_FOMO_saving_config(save_as_tensor=not args.unzip_only)
     # Script skip preprocessing, only records config as metadata.
@@ -231,10 +228,9 @@ def main(**kwargs):
     # Where json files and final data live
     json_root = args.input_dir if args.unzip_only else args.output_dir
 
-    datasets = sorted([
-        d for d in os.listdir(args.input_dir)
-        if os.path.isdir(os.path.join(args.input_dir, d)) and d.startswith("PT")
-    ])
+    datasets = sorted(
+        [d for d in os.listdir(args.input_dir) if os.path.isdir(os.path.join(args.input_dir, d)) and d.startswith("PT")]
+    )
     logging.info(f"Found {len(datasets)} datasets, unzip_only={args.unzip_only}")
 
     t0 = time()
@@ -250,10 +246,7 @@ def main(**kwargs):
             unzip_all(source, os.path.join(args.output_dir, dataset_name))
 
         # Now discover sub-datasets (directories will exist after unzipping)
-        sub_datasets = sorted([
-            d for d in os.listdir(source)
-            if os.path.isdir(os.path.join(source, d)) and d.startswith("ds")
-        ])
+        sub_datasets = sorted([d for d in os.listdir(source) if os.path.isdir(os.path.join(source, d)) and d.startswith("ds")])
 
         if sub_datasets:
             logging.info(f"{dataset_name}: {len(sub_datasets)} sub-datasets")
@@ -261,12 +254,16 @@ def main(**kwargs):
             for i, sub_ds in enumerate(sub_datasets):
                 paths = process_dataset(
                     os.path.join(dataset_name, sub_ds),
-                    args.input_dir, args.output_dir,
-                    saving_config, preprocessing_config, args.num_workers, args.unzip_only,
+                    args.input_dir,
+                    args.output_dir,
+                    saving_config,
+                    preprocessing_config,
+                    args.num_workers,
+                    args.unzip_only,
                 )
                 ds_paths.extend(paths)
                 if (i + 1) % 100 == 0:
-                    logging.info(f"  {i+1}/{len(sub_datasets)} sub-datasets done")
+                    logging.info(f"  {i + 1}/{len(sub_datasets)} sub-datasets done")
 
             # Write parent-level paths.json by scanning actual files on disk
             ds_target_dir = os.path.join(json_root, dataset_name)
@@ -287,8 +284,13 @@ def main(**kwargs):
             all_files.extend(ds_paths)
         else:
             paths = process_dataset(
-                dataset_name, args.input_dir, args.output_dir,
-                saving_config, preprocessing_config, args.num_workers, args.unzip_only,
+                dataset_name,
+                args.input_dir,
+                args.output_dir,
+                saving_config,
+                preprocessing_config,
+                args.num_workers,
+                args.unzip_only,
             )
             all_files.extend(paths)
 

@@ -72,3 +72,6 @@ combine-as-imports = true
 # indent-style = "space": indentation uses spaces, not tabs.
 quote-style = "double"
 indent-style = "space"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]

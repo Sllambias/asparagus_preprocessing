@@ -1,20 +1,19 @@
+import nibabel as nib
+import numpy as np
 import os
 import torch
-import numpy as np
-import nibabel as nib
-from asparagus_preprocessing.utils.saving import save_pickle
-from asparagus_preprocessing.configs.preprocessing_presets import (
-    get_iso_preprocessing_config,
-)
 from asparagus.functional.task_conversion_and_preprocessing import (
     postprocess_standard_dataset,
     preprocess_case_with_label,
 )
 from asparagus.paths import get_data_path, get_source_labels_path
-from multiprocessing.pool import Pool
-
+from asparagus_preprocessing.configs.preprocessing_presets import (
+    get_iso_preprocessing_config,
+)
+from asparagus_preprocessing.utils.saving import save_pickle
 from dataclasses import asdict
 from itertools import repeat
+from multiprocessing.pool import Pool
 
 
 def convert(processes=10):
