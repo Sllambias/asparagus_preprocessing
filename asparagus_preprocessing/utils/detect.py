@@ -240,7 +240,7 @@ def find_processed_dataset(dataset_ID):
     raise LookupError(f"Dataset {dataset_ID} not found in {get_data_path()}. These are valid datasets: {datasets}")
 
 
-def update_paths(dataset_dir):
+def recompute_paths(dataset_dir):
     dataset_json_path = os.path.join(dataset_dir, "dataset.json")
     if not os.path.exists(dataset_json_path):
         logging.warning(f"No dataset.json found in {dataset_dir}; skipping update_paths.")
@@ -288,6 +288,53 @@ def update_paths(dataset_dir):
             fn=split_fn,
             save_path=os.path.join(dataset_dir, split_name + ".json"),
         )
+
+
+def update_paths(dataset_dir, backup_old_files=True):
+    dataset_json_path = os.path.join(dataset_dir, "dataset.json")
+    if not os.path.exists(dataset_json_path):
+        logging.warning(f"No dataset.json found in {dataset_dir}; skipping update_paths.")
+        return
+
+    dataset_cfg = load_json(dataset_json_path)
+    dataset_name = dataset_cfg["dataset_config"]["task_name"]
+
+    for file_name in os.listdir(dataset_dir):
+        if file_name == "dataset.json":
+            continue
+        if os.path.isdir(os.path.join(dataset_dir, file_name)):
+            continue
+        elif (file_name == "paths.json") or ("TEST_" in file_name and file_name.endswith(".json")):
+            logging.info(f"Updating paths in paths/test file {file_name}")
+            old_file = load_json(os.path.join(dataset_dir, file_name))
+            old_file_permissions = os.stat(os.path.join(dataset_dir, file_name)).st_mode
+            new_file = []
+            for path in old_file:
+                new_path = os.path.join(dataset_dir, path.split(dataset_name)[-1].lstrip("/"))
+                new_file.append(new_path)
+        elif "split_" in file_name and file_name.endswith(".json"):
+            logging.info(f"Updating paths in split file {file_name}")
+            old_file = load_json(os.path.join(dataset_dir, file_name))
+            old_file_permissions = os.stat(os.path.join(dataset_dir, file_name)).st_mode
+            new_file = []
+            for split_idx, split in enumerate(old_file):
+                new_file.append({})
+                for split_type in split:  # e.g., "train" or "val"
+                    new_paths = []
+                    for path in split[split_type]:
+                        new_path = os.path.join(dataset_dir, path.split(dataset_name)[-1].lstrip("/"))
+                        new_paths.append(new_path)
+                    new_file[split_idx][split_type] = new_paths
+        else:
+            logging.warning(f"Unexpected file {file_name} found in {dataset_dir}; skipping.")
+            continue
+
+        enhanced_save_json(
+            old_file,
+            os.path.join(dataset_dir, "backup_" + file_name),
+            permissions=old_file_permissions,
+        )
+        enhanced_save_json(new_file, os.path.join(dataset_dir, file_name), permissions=old_file_permissions)
 
 
 def find_and_add_train_splits(dataset_dir, all_train_splits):
