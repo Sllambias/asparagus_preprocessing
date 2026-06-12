@@ -80,7 +80,7 @@ def main(
 
 
 def generate_random_segcase(i, preprocessing_config, saving_config, target_dir, raw_labels_target_dir):
-    file_out = os.path.join(target_dir, f"LauritSynSeg_{i}.pt")
+    file_out = os.path.join(target_dir, f"LauritSynSeg_{i}")
     label_out = os.path.join(raw_labels_target_dir, f"LauritSynSeg_{i}_label.nii.gz")
     dims = (
         torch.randint(low=60, high=280, size=(1,)),
