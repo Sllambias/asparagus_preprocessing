@@ -47,10 +47,6 @@ def process_dwi_case(
     use_trace_computation=False,
     strict=True,
 ):
-    # Check if bvals and bvecs files exist before attempting to load the image
-    if not os.path.exists(bvals_path) or not os.path.exists(bvecs_path):
-        logging.error(f"SKIPPED: Missing bval or bvec for: {path}")
-        return
 
     try:
         image = nib.load(path)
@@ -67,6 +63,10 @@ def process_dwi_case(
                 bvecs = bvecs.T
             elif bvecs.shape[0] != 3:
                 logging.error(f"Invalid bvecs shape: {bvecs.shape}. Expected (3, N) or (N, 3)")
+                return
+
+            if not os.path.exists(bvals_path) or not os.path.exists(bvecs_path):
+                logging.error(f"SKIPPED: Missing bval or bvec for: {path}")
                 return
 
             images, bvals = extract_3ddwi_from_4ddwi(
