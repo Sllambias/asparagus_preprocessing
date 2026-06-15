@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import re
 import shutil
+import json
 from .config import (
     DEFAULT_MRI_METADATA_FIELDS,
     EXTENSION_LENGTHS,
@@ -611,7 +612,7 @@ def extract_demographics(
             key = (row["original_participant_id"], row["original_session_id"])
             if key in file_mapping:
                 rel_paths = [os.path.relpath(file_path, common_base) for file_path in file_mapping[key]]
-                expanded_df.at[i, "filenames"] = ",".join(rel_paths)
+                expanded_df.at[i, "filenames"] = json.dumps(rel_paths)
 
         mri_info_df = create_mri_info_dataframe(
             expanded_df,
@@ -651,10 +652,8 @@ def rename_files_with_mapping(
     file_lookup = {}
     for _, row in expanded_df.iterrows():
         if pd.notna(row.get("filenames")):
-            filepaths = row["filenames"].split(",")
-            for filepath in filepaths:
-                filepath = filepath.strip()
-                file_lookup[filepath] = {
+            for filepath in json.loads(row["filenames"]):
+                file_lookup[filepath.strip()] = {
                     "new_participant_id": row["participant_id"],
                     "new_session_id": row["session_id"],
                 }
