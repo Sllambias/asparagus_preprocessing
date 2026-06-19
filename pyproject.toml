@@ -1,6 +1,6 @@
 [project]
 name = "asparagus_preprocessing"
-version = "0.1.7"
+version = "0.1.8"
 authors = [
   { name="Sebastian Llambias", email="llambias@live.com" },
 ]
