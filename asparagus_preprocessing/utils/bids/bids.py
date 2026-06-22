@@ -1,10 +1,10 @@
+import json
 import logging
 import numpy as np
 import os
 import pandas as pd
 import re
 import shutil
-import json
 from .config import (
     DEFAULT_MRI_METADATA_FIELDS,
     EXTENSION_LENGTHS,
