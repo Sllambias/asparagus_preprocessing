@@ -133,11 +133,6 @@ def process(
     if saving_config.bidsify:
         subjects_df.to_csv(os.path.join(target_dir, "participants.tsv"), sep="\t", index=False)
 
-        mapping_df = rename_files_with_mapping(
-            target_dir=target_dir,
-            expanded_df=expanded_df,
-        )
-
     if saving_config.bidsify or saving_config.save_dset_metadata:
         mri_info_df.to_csv(os.path.join(target_dir, "mri_info.tsv"), sep="\t", index=False)
 

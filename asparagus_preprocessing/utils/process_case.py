@@ -47,7 +47,6 @@ def process_dwi_case(
     use_trace_computation=False,
     strict=True,
 ):
-
     try:
         image = nib.load(path)
         method_name = "trace computation" if use_trace_computation else "averaging"
