@@ -6,8 +6,7 @@ from asparagus_preprocessing.utils.splitting import dynamic_split
 
 
 def main(
-    path: str = "/projects/users/people/seblla/repos/EHR_extract/all_images_2026-05-29.csv",
-    # path: str = "/Users/zcr545/Desktop/Projects/repos/EHR_extract/test_data/test_table.csv",
+    path: str = "/projects/users/data/UCPH/DeepFetal/ultrasound/tables/database_snapshots/all_images_2026-11-11.csv",
     subdir: str = "",
     processes=12,
     bidsify=False,
@@ -16,8 +15,8 @@ def main(
 ):
     logging.warning("Loading DF")
     df = pl.read_csv(path)
-    df = df.select(["phair_hash", "no_ocr_preprocessed_file_path"]).drop_nulls()
-    subjects = df["phair_hash"].to_list()
+    df = df.select(["file_hash", "no_ocr_preprocessed_file_path"]).drop_nulls()
+    subjects = df["file_hash"].to_list()
 
     logging.warning("Splitting on subject level")
     train_subjects, val_subjects, test_subjects = dynamic_split(
@@ -25,13 +24,13 @@ def main(
     )
 
     logging.warning("Filtering image paths on into train,val,test on subject splits")
-    train_df = df.filter(pl.col("phair_hash").is_in(train_subjects))
+    train_df = df.filter(pl.col("file_hash").is_in(train_subjects))
     train_files = train_df["no_ocr_preprocessed_file_path"].to_list()
 
-    val_df = df.filter(pl.col("phair_hash").is_in(val_subjects))
+    val_df = df.filter(pl.col("file_hash").is_in(val_subjects))
     val_files = val_df["no_ocr_preprocessed_file_path"].to_list()
 
-    test_df = df.filter(pl.col("phair_hash").is_in(test_subjects))
+    test_df = df.filter(pl.col("file_hash").is_in(test_subjects))
     test_files = test_df["no_ocr_preprocessed_file_path"].to_list()
 
     logging.warning("Saving")
