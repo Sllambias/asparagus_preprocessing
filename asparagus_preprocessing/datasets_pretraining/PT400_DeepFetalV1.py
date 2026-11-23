@@ -8,7 +8,7 @@ from asparagus_preprocessing.utils.splitting import non_stratified_split
 
 def main(
     path: str = "/projects/users/data/UCPH/DeepFetal/ultrasound/tables/database_snapshots/all_images_2026-11-11.csv",
-    root: str = "/projects/users/data/UCPH/DeepFetal/ultrasound/PNG_processed_no_OCR",
+    root: str = "/projects/users/data/UCPH/DeepFetal/ultrasound/PNG_PROCESSED_NO_OCR_TMP_DIR",
     holdout_csv: str = "/projects/users/data/UCPH/DeepFetal/projects/common/splits/split_V4-1/test_split_0.15_2026-11-16.csv",
     holdout_key: str = "CPR_MOR",
     subdir: str = "",
